@@ -1,6 +1,7 @@
 #include "string_utils.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 // Checks if the string starts with the other given string.
 int str_starts_with(const char *str, const char *sub)
@@ -77,19 +78,45 @@ void str_remove_char(char **str, const char c)
 }
 
 // Checks if the given string only contains the character specified.
-int str_contains_only(const char *str, const char c)
+bool str_contains_only(const char *str, const char c)
 {
-    int res = 1;
+    bool res = true;
     int i = 0;
 
     while (str[i] != '\0' && res)
     {
         if (str[i] != c)
         {
-            res = 0;
+            res = false;
         }
         i++;
     }
 
     return res;
+}
+
+// Returns the location of the first occurence of the give character in the string.
+int str_index_of(const char *str, const char c)
+{
+    char *c_location = strchr(str, c);
+
+    if (c_location == NULL)
+    {
+        return -1;
+    }
+
+    return (int)(c_location - str);
+}
+
+// Returns the location of the last occurence of the give character in the string.
+int str_last_index_of(const char *str, const char c)
+{
+    char *c_location = strrchr(str, c);
+
+    if (c_location == NULL)
+    {
+        return -1;
+    }
+
+    return (int)(c_location - str);
 }

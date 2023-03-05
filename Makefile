@@ -3,4 +3,4 @@ build-run:
 	./a.out
 
 build:
-	gcc *c
+	gcc -Wall *c
