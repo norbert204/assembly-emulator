@@ -1,6 +1,6 @@
 build-run:
-	gcc -Wall src/*c
-	./a.out
+	gcc -o asemu -DDEBUG -Wall src/*c
+	./asemu
 
 build:
-	gcc -Wall *c
+	gcc -Wall src/*c -o asemu
