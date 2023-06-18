@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "ram_file.h"
+#include <string.h>
 
 void print_credits()
 {
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    cleanup_dump(argv[argc - 1]);   
+    printf("File to process: %s", argv[argc - 1]);
 
     return 0;
 }
