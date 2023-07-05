@@ -2,5 +2,4 @@
 
 #include <string.h>
 
-void cleanup_dump(char *file);
-
+void create_ram_file(const char *file);

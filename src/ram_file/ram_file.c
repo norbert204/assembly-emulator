@@ -5,9 +5,11 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include "../base/string_utils.h"
+#include "decompile.h"
 #include "segment_text.h"
 
-#define OUTPUT_FILE_NAME "RAM.txt"
+#define OUTPUT_FILE_NAME "/tmp/asemu_ram"
+#define OUTPUT_DUMP_FILE "/tmp/asemu_dump"
 #define LINE_SIZE 255
 
 #define MAIN_FUNCTION_NAME "<main>"
@@ -51,13 +53,8 @@ int get_main_address(FILE **in)
     return address;
 }
 
-void cleanup_dump(char *file)
+void cleanup_dump(const char *file)
 {
-    if (access(file, F_OK) != 0)
-    {
-        fprintf(stderr, "Cannot access specified file: %s. Please ensure that the file exists and has read permission for the current user.", file);
-        exit(1);
-    }
 
     FILE *in = fopen(file, "r");
     FILE *out = fopen(OUTPUT_FILE_NAME, "w");
@@ -87,4 +84,10 @@ void cleanup_dump(char *file)
 
     fclose(in);
     fclose(out);
+}
+
+void create_ram_file(const char *file)
+{
+    decompile_executable(file, OUTPUT_DUMP_FILE);
+    cleanup_dump(OUTPUT_DUMP_FILE);
 }
