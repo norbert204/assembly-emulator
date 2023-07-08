@@ -26,9 +26,9 @@ const char *prefixes[] = {
 
 #define PREFIXES_COUNT 16
 
-void print_line_to_file(FILE **out, int address, char machine_code[], char assembly[], char simplified_assembly[])
+void print_line_to_file(FILE *out, int address, char machine_code[], char assembly[], char simplified_assembly[])
 {
-    fprintf(*out, "%x\t%s\t%s\t%s\n", address, simplified_assembly, machine_code, assembly);
+    fprintf(out, "%x\t%s\t%s\t%s\n", address, simplified_assembly, machine_code, assembly);
 }
 
 void clean_operand(char *operand, const size_t size)
@@ -140,14 +140,7 @@ void simplify_operand(char operand[], size_t size)
     memset(address, '\0', size - 1);
     sscanf(operand, "%*[^ ] PTR %s", address);
 
-    if (strstr(address, "["))
-    {
-        sprintf(operand, "%c%s", type, address);
-    }
-    else
-    {
-        sprintf(operand, "%c[%s]", type, address);
-    }
+    sprintf(operand, "%c%s", type, address);
 }
 
 void simplify_assembly(char assembly[], size_t size)
@@ -177,7 +170,7 @@ void clean_machine_code(char machine_code[], size_t size)
     str_remove_char(machine_code, size, ' ');
 }
 
-void handle_text_segment(FILE **input, FILE **output)
+void handle_text_segment(FILE *input, FILE *output)
 {
     bool found_main = false;
     bool read_values = false;
@@ -193,15 +186,15 @@ void handle_text_segment(FILE **input, FILE **output)
     memset(assembly, '\0', 128);
     memset(simplified_assembly, '\0', 128);
 
-    long last_file_pos = ftell(*input);
+    long last_file_pos = ftell(input);
 
     while (true)
     {
-        fgets(line, 512, *input);
+        fgets(line, 512, input);
 
         if (str_starts_with(line, "Disassembly of"))
         {
-            fseek(*input, last_file_pos, SEEK_SET);
+            fseek(input, last_file_pos, SEEK_SET);
             break;
         }
 
@@ -255,7 +248,7 @@ void handle_text_segment(FILE **input, FILE **output)
         strncpy(simplified_assembly, assembly, 128);
         simplify_assembly(simplified_assembly, 128);
 
-        last_file_pos = ftell(*input);
+        last_file_pos = ftell(input);
         read_values = true;
     }
 }

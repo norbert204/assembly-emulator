@@ -36,30 +36,42 @@ void set_state(char *line, segment *seg, FILE **out)
     }
 }
 
-int get_main_address(FILE **in)
+int get_main_address(FILE *in)
 {
     char line[LINE_SIZE];
+    bool found_main = false;
 
-    while (!strstr(line, MAIN_FUNCTION_NAME))
+    while (fgets(line, LINE_SIZE, in) != NULL)
     {
-        fgets(line, LINE_SIZE, *in);
+        if (strstr(line, MAIN_FUNCTION_NAME))
+        {
+            found_main = true;
+            break;
+        }
+    }
+
+    if (!found_main)
+    {
+        fprintf(stderr, "Main function not found in executable.\n");
+        exit(1);
     }
 
     int address;
     sscanf(line, "%x", &address);
 
-    fseek(*in, 0, SEEK_SET);
+    printf("address: %x\n", address);
+
+    fseek(in, 0, SEEK_SET);
 
     return address;
 }
 
 void cleanup_dump(const char *file)
 {
-
     FILE *in = fopen(file, "r");
     FILE *out = fopen(OUTPUT_FILE_NAME, "w");
 
-    int main_address = get_main_address(&in);
+    int main_address = get_main_address(in);
     fprintf(out, "main: %x\n", main_address);
 
     char line[LINE_SIZE];
@@ -77,7 +89,7 @@ void cleanup_dump(const char *file)
         switch (cur_segment)
         {
             case TEXT:
-                handle_text_segment(&in, &out);
+                handle_text_segment(in, out);
                 break;
         }
     }
