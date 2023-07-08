@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include "../base/string_utils.h"
 #include "decompile.h"
+#include "segment_rodata.h"
 #include "segment_text.h"
 
 #define OUTPUT_FILE_NAME "/tmp/asemu_ram"
@@ -23,12 +24,17 @@ typedef enum
     BSS,
 } segment;
 
-void set_state(char *line, segment *seg, FILE **out)
+void set_state(char *line, segment *seg, FILE *out)
 {
     if (strstr(line, ".text"))
     {
         *seg = TEXT;
-        fprintf(*out, ".text\n");
+        fprintf(out, ".text\n");
+    }
+    else if (strstr(line, ".rodata"))
+    {
+        *seg = RODATA;
+        fprintf(out, ".rodata\n");
     }
     else 
     {
@@ -59,8 +65,6 @@ int get_main_address(FILE *in)
     int address;
     sscanf(line, "%x", &address);
 
-    printf("address: %x\n", address);
-
     fseek(in, 0, SEEK_SET);
 
     return address;
@@ -82,7 +86,7 @@ void cleanup_dump(const char *file)
     {
         if (str_starts_with(line, "Disassembly of"))
         {
-            set_state(line, &cur_segment, &out);
+            set_state(line, &cur_segment, out);
             continue;
         }
 
@@ -90,6 +94,9 @@ void cleanup_dump(const char *file)
         {
             case TEXT:
                 handle_text_segment(in, out);
+                break;
+            case RODATA:
+                handle_rodata_segment(in, out);
                 break;
         }
     }
