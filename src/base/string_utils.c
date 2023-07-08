@@ -111,6 +111,11 @@ int str_char_count(const char *str, const size_t size, const char c)
 
     for (int i = 0; i < size - 1; i++)
     {
+        if (str[i] == '\0')
+        {
+            return count;
+        }
+
         if (str[i] == c)
         {
             count++;
