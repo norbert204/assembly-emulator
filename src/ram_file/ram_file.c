@@ -12,7 +12,7 @@
 #define OUTPUT_DUMP_FILE "/tmp/asemu_dump"
 #define LINE_SIZE 255
 
-#define MAIN_FUNCTION_NAME "<main>"
+#define MAIN_FUNCTION_NAME " <main>:"
 
 typedef enum 
 {

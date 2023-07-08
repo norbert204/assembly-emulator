@@ -3,7 +3,7 @@
 #include <string.h>
 #include "../base/string_utils.h"
 
-#define MAIN_FUNCTION_NAME "<main>"
+#define MAIN_FUNCTION_NAME " <main>:"
 
 const char *prefixes[] = {
     "cs",
