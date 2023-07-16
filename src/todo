@@ -1,0 +1,5 @@
+konstansok létrehozása a maszkoknak pl 64 bites csupa 1-es maszk 18,446,744,073,709,551,615 -> Mask64;
+regiszter keresés kiszervezése függvénybe
+findliteral bug 0x- el
+-konstanst hexként kell értelmezni
+-RIP nem a következő címet kapja

@@ -1,4 +1,10 @@
 /*** x86-64 emulator system components ***/
+#define Mask64 18446744073709551615u
+#define Mask32 4294967295u
+#define Mask16 65535u
+#define Mask8h 65280u
+#define Mask8l 255u
+
 #ifndef X86_64_H
 /* Register set of the CPU's ISA */
 long long int RAX;                // 64-bit general purpose A register
@@ -68,62 +74,21 @@ long long int RSPinit;            // initial value of RSP
 int Run;                          // main loop flag (1: repeat fetch-execute loop; 0: terminate run)
 
 /* Headers of subroutines */
-void Init()
-{
-    int CodeSegment = 0;             //code segment indicator in RAM.txt
-    char *line = malloc(255);
-    FILE* RAM = fopen("RAM.txt", "rt");
-    fgets(line, 255, RAM);
-    RIP = atoi(strchr(line, 32));
-    while (!feof(RAM))
-    {
-        fgets(line, 255, RAM);
-        if(strstr(line, ".text"))
-        {
-            CodeSegment = 1;
-        } 
-        else if (strstr(line, ".rodata") || strstr(line, ".data") || strstr(line, ".bss"))
-        {
-            CodeSegment = 0;
-        } 
-        else 
-        {
-            if (CodeSegment) 
-            {
-                MemInstUnit* tmp = malloc(sizeof(MemInstUnit));
-                tmp->addr = strtol(strtok(line, "\t"), NULL, 16);
-                strcpy(tmp->mnemonic, strtok(NULL, "\t"));              // KÉRDÉS: így miért nem működik : (void*) &(tmp->mnemonic) = strtok(NULL, "\t")
-                strcpy(tmp->operand1, strtok(NULL, "\t"));
-                strcpy(tmp->operand2, strtok(NULL, "\t"));
-                strcpy(tmp->operand3, strtok(NULL, "\t"));
-                strcpy(tmp->machinecode, strtok(NULL, "\t"));
-                strcpy(tmp->assembly, strtok(NULL, ""));                // Ha nincs elválasztó, akkor megkapjuk a maradék sztringet
-                tmp->assembly[strlen(tmp->assembly) - 2] = '\0';        //Utolsó karakter strtok által berakott \0, utolsó előtti a \n amit el akarunk távolítani(-2)
-                tmp->instlength = strlen(tmp->machinecode);
-                tmp->next = MemInst;
-                MemInst = tmp;
-            }
-            else 
-            {
-                MemDataUnit* tmp = malloc(sizeof(MemDataUnit));
-                tmp->addr = strtol(strtok(line, "\t"), NULL, 16);
-                tmp->byte = strtol(strtok(NULL, "\t"), NULL, 16);
-                tmp->next = MemData;
-                MemData = tmp;
-            }
-        }
-    }
-}
+void Init();
 // Read RAM file to initialize RIP
 // Read RAM file to initialize instruction memory linked list
 // Read RAM file to initialize data memory linked list
 // Initialize register set
 // Opening output file
 
-long long int ReadMem(long long int address, int size);
+long long int ReadMem(long long int address, int size)
+{
+    printf(" %d bájt olvasása %llx címről\n", size/8, address);
+}
 // Search for the given address in the data memory linked list
 // If necessary compose multi-byte data from the consecutive data bytes (using little-endian byte order)
 // Return with the given data
+
 
 void WriteMem(long long int address, int size, long long int data);
 // Search for the given address in the data memory linked list
@@ -139,13 +104,21 @@ void OperandFetch();
 // Set the ALU masks
 // Apply constant, register content or data memory content (using proper addressing mode)
 
-void Execute();
-// Call the required procedure for the proper operation
-// Update the Run flag (based on RSP and RSPinit)
-
-void ProcadureForAllMnemoninc();
+void ProcadureForAllMnemoninc()
+{
+    if (!strcmp(Mnemonic, "add")) ALUout = ALUin1 + ALUin2;
+    if (!strcmp(Mnemonic, "sub")) ALUout = ALUin1 - ALUin2;
+    if (!strcmp(Mnemonic, "mov")) ALUout = ALUin2;
+}
 // Based on the Mnemonic do the proper action (using ALUin1, ALUin2 and others)
 // Set of procedures for mnemonics (e.g: add(), jmp() ret(), etc.)
+
+void Execute()
+{
+// Call the required procedure for the proper operation
+// Update the Run flag (based on RSP and RSPinit)
+    ProcadureForAllMnemoninc();
+}
 
 void WriteBack();
 // If necessary update the destination operand (and/or other registers) by ALUout
