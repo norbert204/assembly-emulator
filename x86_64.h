@@ -108,6 +108,3 @@ void SaveState();
 void Fini();
 // Free data and instruction memory linked lists
 // Close files
-
-void insertAfter(struct MemDataUnit* prev_node, long long int new_data);
-// Insert to a given part of the linked list
