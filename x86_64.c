@@ -16,7 +16,7 @@ long long int ReadMem(long long int address, int size)
             {                
                 toreturn |= (long long int)(((current->byte)>>(i*8))&0xFF);
                 current = current->next;
-                if (current->addr != address+i) //Non-following address problem
+                if (current->addr != address+(i+1)) //Non-following address problem
                 {
                     Run = 0; //Global error variable; stop running
                     fprintf(stderr, "Memory read error! Not following address!");
@@ -61,4 +61,26 @@ void WriteMem(long long int address, int size, long long int data)
         lower = current;
         current = current->next;
     }
+}
+
+void SaveState()
+{
+    char* file = "output.txt";
+    FILE *fp = fopen(file, "a");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "File error! Cannot open file!");
+        exit(32);
+    }
+
+    fprintf(fp, "%lld \t %lld \t %lld \t %lld \t %lld \t %lld \t %lld \t %lld \t %lld \t %lld \t %lld \t ",
+                 RIP,    RAX,    RBX,    RCX,    RDX,    RDI,    RSI,    RSP,    RBP,    R8,     R9);
+    fprintf(fp, "%lld \t %lld \t %lld \t %lld \t %lld \t %lld \t %d \t %d \t %d \t %d \t ",
+                 R10,    R11,    R12,    R13,    R14,    R15,    CF,   OF,   SF,   ZF);
+
+    fprintf(fp, "<%lld> ", (RSP - RBP));
+    fprintf(fp, "(\t <StackBytes_InReverseOrder>) \t ");//todo
+    fprintf(fp, "<%s> \n", Mnemonic);
+
+    fclose(fp);
 }
