@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <math.h>
 
 long long int ReadMem(long long int address, int size)
 {
@@ -14,9 +16,9 @@ long long int ReadMem(long long int address, int size)
         {
             for (int i = 0; i < size; i++)
             {                
-                toreturn |= (long long int)(((current->byte)>>(i*8))&0xFF);
+                toreturn |= (long long int)(((current->byte)<<(i*8))&0xFFFFFFFF);
                 current = current->next;
-                if (current->addr != address+(i+1)) //Non-following address problem
+                if (current->addr != address+(i+i)) //Non-following address problem
                 {
                     Run = 0; //Global error variable; stop running
                     fprintf(stderr, "Memory read error! Not following address!");
@@ -78,8 +80,15 @@ void SaveState()
     fprintf(fp, "%lld \t %lld \t %lld \t %lld \t %lld \t %lld \t %d \t %d \t %d \t %d \t ",
                  R10,    R11,    R12,    R13,    R14,    R15,    CF,   OF,   SF,   ZF);
 
-    fprintf(fp, "<%lld> ", (RSP - RBP));
-    fprintf(fp, "(\t <StackBytes_InReverseOrder>) \t ");//todo
+    fprintf(fp, "<%lld> ", (RSP - RSPinit));
+    fprintf(fp, "(\t <");
+
+    for (int i = RSPinit - 1; i >= RSP; i--)
+    {
+        fprintf(fp, "%d\t", ReadMem(i, 1));//todo    
+    }
+    
+    fprintf(fp, ")>) \t ");
     fprintf(fp, "<%s> \n", Mnemonic);
 
     fclose(fp);
