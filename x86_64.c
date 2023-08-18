@@ -93,3 +93,141 @@ void SaveState()
 
     fclose(fp);
 }
+
+void ProcadureForAllMnemoninc()
+{
+    if (!strcmp(Mnemonic, "ja"))
+    {
+        if (ZF == 0 && CF == 0) // (ZF == 0 && CF == 1)
+        {
+            RIP = ALUin1;    
+        }   
+        CF = 0;
+        ZF = 0;
+        return;      
+    }
+    if (!strcmp(Mnemonic, "jae"))
+    {
+        if (CF == 0) // ((ZF == 0 && CF == 0) || ZF == 1)
+        {
+            RIP = ALUin1;
+        }   
+        CF = 0;
+        return;
+    }
+    if (!strcmp(Mnemonic, "jb"))
+    {
+        if (CF == 1) // (ZF == 0 && CF == 0)
+        {
+            RIP = ALUin1;
+        }   
+        CF = 1;
+        ZF = 0;
+        return;
+    }
+    if (!strcmp(Mnemonic, "jbe"))
+    {
+        if (CF == 1 || ZF == 1) // ((ZF == 0 && CF == 1) || ZF == 1)
+        {
+            RIP = ALUin1; 
+        }   
+        CF = 1;
+        ZF = 1; 
+        return;
+    }
+    if (!strcmp(Mnemonic, "jc"))
+    {
+        if (CF == 1)
+        {
+            RIP = ALUin1;
+        }
+        return;
+    }
+    if (!strcmp(Mnemonic, "je"))
+    {
+        if (ZF == 1)
+        {
+            RIP = ALUin1;
+        }   
+        ZF = 1;
+        return;
+    }
+    if (!strcmp(Mnemonic, "jg"))
+    {
+        if (ZF == 0 && SF == OF)
+        {
+            RIP = ALUin1;
+        }
+        ZF = 0;
+        SF = 1;
+        return;
+    }
+    if (!strcmp(Mnemonic, "jge"))
+    {
+        if (SF == OF) // (ZF == 1 || SF == OF)
+        {
+            RIP = ALUin1;
+        }
+        ZF = 1;
+        SF = 1;
+        return;
+    }
+    if (!strcmp(Mnemonic, "jl"))
+    {
+        if (SF != OF)
+        {
+            RIP = ALUin1;
+        }
+        return;
+    }
+    if (!strcmp(Mnemonic, "jle"))
+    {
+        if (ZF == 1 || SF != OF)
+        {
+            RIP = ALUin1;
+        }
+        ZF = 1;
+        return;
+    }
+    if (!strcmp(Mnemonic, "jmp"))
+    {
+        RIP = ALUin1;
+        return; 
+    }
+    if (!strcmp(Mnemonic, "jnc"))
+    {
+        if (CF == 0)
+        {
+            RIP = ALUin1;
+        }
+        CF = 0;
+        return;
+    }
+    if (!strcmp(Mnemonic, "jne"))
+    {
+        if (ZF == 0)
+        {
+            RIP = ALUin1;
+        }
+        ZF = 0;
+        return;
+    }
+    if (!strcmp(Mnemonic, "jnz"))
+    {
+        if (ZF == 0)
+        {
+            RIP = ALUin1;
+        }              
+        ZF = 0;
+        return;
+    }
+    if (!strcmp(Mnemonic, "jz"))
+    {
+        if (ZF == 1)
+        {
+            RIP = ALUin1;
+        }              
+        ZF = 1;
+        return;
+    }
+}
