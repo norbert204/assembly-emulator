@@ -1,9 +1,4 @@
 /*** x86-64 emulator system components ***/
-#define Mask64 18446744073709551615u
-#define Mask32 4294967295u
-#define Mask16 65535u
-#define Mask8h 65280u
-#define Mask8l 255u
 
 #ifndef X86_64_H
 /* Register set of the CPU's ISA */
@@ -81,10 +76,7 @@ void Init();
 // Initialize register set
 // Opening output file
 
-long long int ReadMem(long long int address, int size)
-{
-    printf(" %d bájt olvasása %llx címről\n", size/8, address);
-}
+long long int ReadMem(long long int address, int size);
 // Search for the given address in the data memory linked list
 // If necessary compose multi-byte data from the consecutive data bytes (using little-endian byte order)
 // Return with the given data
@@ -104,21 +96,13 @@ void OperandFetch();
 // Set the ALU masks
 // Apply constant, register content or data memory content (using proper addressing mode)
 
-void ProcadureForAllMnemoninc()
-{
-    if (!strcmp(Mnemonic, "add")) ALUout = ALUin1 + ALUin2;
-    if (!strcmp(Mnemonic, "sub")) ALUout = ALUin1 - ALUin2;
-    if (!strcmp(Mnemonic, "mov")) ALUout = ALUin2;
-}
+void ProcadureForAllMnemoninc();
 // Based on the Mnemonic do the proper action (using ALUin1, ALUin2 and others)
 // Set of procedures for mnemonics (e.g: add(), jmp() ret(), etc.)
 
-void Execute()
-{
+void Execute();
 // Call the required procedure for the proper operation
 // Update the Run flag (based on RSP and RSPinit)
-    ProcadureForAllMnemoninc();
-}
 
 void WriteBack();
 // If necessary update the destination operand (and/or other registers) by ALUout
@@ -129,5 +113,24 @@ void SaveState();
 void Fini();
 // Free data and instruction memory linked lists
 // Close files
+
+//#############################################################//
+
+#define Mask64 18446744073709551615u
+#define Mask32 4294967295u
+#define Mask16 65535u
+#define Mask8h 65280u
+#define Mask8l 255u
+
+long long int *WriteBackDest;
+long long int WriteBackAddress;
+int WriteBackSize;
+
+int CheckSF();
+void PrintList(int m);
+int FetchRegister(char* Operand, long long int* Destination);
+int FetchLiteral(char* Expression, long long int* Destination);
+int ResolveAddress(long long int *Destination);
+
 #define X86_64_H
 #endif
