@@ -4,9 +4,10 @@
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include "../base/types.h"
 #include "../base/string_utils.h"
 #include "decompile.h"
-#include "segment_rodata.h"
+#include "segment_data.h"
 #include "segment_text.h"
 
 #define OUTPUT_FILE_NAME "/tmp/asemu_ram"
@@ -14,15 +15,6 @@
 #define LINE_SIZE 255
 
 #define MAIN_FUNCTION_NAME " <main>:"
-
-typedef enum 
-{
-    NO_SEGMENT = 0,
-    TEXT,
-    RODATA,
-    DATA,
-    BSS,
-} segment;
 
 void set_state(char *line, segment *seg, FILE *out)
 {
@@ -35,6 +27,16 @@ void set_state(char *line, segment *seg, FILE *out)
     {
         *seg = RODATA;
         fprintf(out, ".rodata\n");
+    }
+    else if (strstr(line, ".bss"))
+    {
+        *seg = BSS;
+        fprintf(out, ".bss\n");
+    }
+    else if (strstr(line, ".data"))
+    {
+        *seg = DATA;
+        fprintf(out, ".data\n");
     }
     else 
     {
@@ -90,14 +92,13 @@ void cleanup_dump(const char *file)
             continue;
         }
 
-        switch (cur_segment)
+        if (cur_segment == TEXT)
         {
-            case TEXT:
-                handle_text_segment(in, out);
-                break;
-            case RODATA:
-                handle_rodata_segment(in, out);
-                break;
+            handle_text_segment(in, out);
+        }
+        else if (cur_segment != NO_SEGMENT)
+        {
+            handle_data_segments(cur_segment, in, out);
         }
     }
 

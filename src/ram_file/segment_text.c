@@ -26,7 +26,7 @@ const char *prefixes[] = {
 
 #define PREFIXES_COUNT 16
 
-void print_line_to_file(FILE *out, int address, char machine_code[], char assembly[], char simplified_assembly[])
+static void print_line_to_file(FILE *out, int address, char machine_code[], char assembly[], char simplified_assembly[])
 {
     fprintf(out, "%x\t%s\t%s\t%s\n", address, simplified_assembly, machine_code, assembly);
 }
