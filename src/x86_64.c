@@ -1,3 +1,87 @@
+
+long long int ReadMem(long long int address, int size)
+{
+    //Data memory
+    MemDataUnit * current = MemData;
+    long long int toreturn = 0;
+    while (current != NULL) {
+        if (current->addr == address)
+        {
+            for (int i = 0; i < size; i++)
+            {                
+                toreturn |= (long long int)(((current->byte)<<(i*8))&0xFFFFFFFF);
+
+                if(!current->next) break;
+                current = current->next;
+                if (current->addr != address+(i+1)) //Non-following address problem
+                {
+                    Run = 0; //Global error variable; stop running
+                    fprintf(stderr, "Memory read error! Not following address!\n");
+                    exit(42);
+                }                
+            }
+            return toreturn;
+        }
+        else
+        {
+            current = current->next;
+        }        
+    }
+    fprintf(stderr, "Memory read error! Data not in memory!\n");    
+    exit(42);
+}
+
+void WriteMem(long long int address, int size, long long int data)
+{
+    //Data memory
+    int i;
+    MemDataUnit * current = MemData;
+    MemDataUnit * lower = NULL;
+    MemDataUnit * temp;
+    while (current != NULL && current->addr < address) {
+        lower = current;
+        current = current->next;
+    }
+    for (int i = 0; i < size; i++) {
+        if(current != NULL && current->addr == address+i){
+            current->byte = (unsigned char)((data>>(i*8))&0xff);
+        }
+        else{
+            temp = (MemDataUnit*)malloc(sizeof(MemDataUnit));
+            temp->addr = address+i;
+            temp->byte = (unsigned char)((data>>(i*8))&0xff);
+            temp->next = current;
+            if(lower == NULL) MemData = temp;
+            else lower->next = temp;
+            current = temp;
+        }
+        lower = current;
+        current = current->next;
+    }
+}
+
+void SaveState()
+{
+    char* file = "output.txt";
+    FILE *fp = fopen(file, "a");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "File error! Cannot open file!\n");
+        exit(32);
+    }
+
+    fprintf(fp, "%llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t ",
+                 RIP,    RAX,    RBX,    RCX,    RDX,    RDI,    RSI,    RSP,    RBP,    R8,     R9);
+    fprintf(fp, "%llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %d \t %d \t %d \t %d \t ",
+                 R10,    R11,    R12,    R13,    R14,    R15,    CF,   OF,   SF,   ZF);
+
+    fprintf(fp, "<%lld> ", (RSP - RSPinit));
+    fprintf(fp, "(\t <StackBytes_InReverseOrder>) \t ");//todo
+    fprintf(fp, "<%s> \n", Mnemonic);
+
+    fclose(fp);
+}
+
 void InstructionFetch()
 {
 // Read an instruction from the instruction memory list addressed by RIP
@@ -14,439 +98,875 @@ void InstructionFetch()
             strcpy(Operand3, tmp->operand3);
             strcpy(Assembly, tmp->assembly);
             strcpy(MachineCode, tmp->machinecode);
-            RIP = (tmp->next)->addr;
             InstLength = tmp->instlength;
-            break;
+            if(tmp->next != NULL) RIP = (tmp->next)->addr;
+            else RIP = 0; //RSP = RSPinit
+            return;
         }
         tmp = tmp->next;
     }
+    fprintf(stderr, "Error! Instruction not found!\n");
     Run = 0;
 }
+void Init()
+{
+     RAX = 0x4198694;
+     RBX = 0x4198736;
+     RCX = 0x4198736;
+     RDX = 0x140729291588392;	// rsp+256
+     RDI = 0x1;
+     RSI = 0x140729291588376;	// rsp+240
+     RSP = 0x140729291588136;	// Az utolsó 3 bit biztos, hogy 0.
+     RBP = 0x0;
+     R8 = 0x0;
+     R9 = 0x140013369068896;
+     R10 = 0x0;
+     R11 = 0x140662942914800;
+     R12 = 0x4198464;
+     R13 = 0x140729747886176;
+     R14 = 0x0;
+     R15 = 0x0;
+     CF = 0x0;
+     OF = 0x0;
+     ZF = 0x1;
+     SF = 0x0;
+
+     RSPinit = RSP;
+     Run = 1;
+
+    MemData = NULL;
+    MemDataUnit **LastData = malloc(sizeof(MemDataUnit));
+
+    MemInst = NULL;
+    MemInstUnit **LastInst = malloc(sizeof(MemInstUnit));
+    
+
+    int CodeSegment = 0;             //code segment indicator in RAM.txt
+    char *line = malloc(Mask8l);
+    FILE* RAM = fopen("RAM_DEMO.txt", "rt");
+    fgets(line, Mask8l, RAM);
+    RIP = strtol(strchr(line, 32), NULL, 16);
+    while (!feof(RAM))
+    {
+        fgets(line, Mask8l, RAM);
+        if(strstr(line, ".text"))
+        {
+            CodeSegment = 1;
+        } 
+        else if (strstr(line, ".rodata") || strstr(line, ".data") || strstr(line, ".bss"))
+        {
+            CodeSegment = 0;
+        } 
+        else 
+        {
+            if (CodeSegment) 
+            {
+                MemInstUnit* tmp = malloc(sizeof(MemInstUnit));
+                sscanf(line, "%llx   %s  %s  %s  %s  %s   %[^\n]", &(tmp->addr), tmp->mnemonic, tmp->operand1, tmp->operand2, tmp->operand3, tmp->machinecode, tmp->assembly);
+                tmp->instlength = strlen(tmp->machinecode);
+                tmp->next = NULL;
+                
+                if(!MemInst)
+                {
+                    MemInst = tmp;
+                    *LastInst = tmp;
+                }
+
+                (*LastInst)->next = tmp;
+                (*LastInst) = tmp;
+                 
+            }
+            else 
+            {
+                MemDataUnit* tmp = malloc(sizeof(MemDataUnit));
+
+                sscanf(line, "%llx  %hhx", &(tmp->addr), &(tmp->byte));
+                tmp->next = NULL;
+                
+                if(!MemData)
+                {
+                    MemData = tmp;
+                    *LastData = tmp;
+                }
+
+                (*LastData)->next = tmp;
+                (*LastData) = tmp;
+            }
+        }          
+    }
+}
+void OperandFetch()
+    {
+// Load the proper values into the ALUin1 and ALUin2 based on Operand1, Operand2
+// Set the ALU masks
+// Apply constant, register content or data memory content (using proper addressing mode)
+        if(!strcmp(Mnemonic, "ret")) return;
+
+        if(!FetchRegister(Operand1, &ALUin1))
+        {
+            long long int Address;
+            if (Operand1[0] == 'Q')
+            {
+                ResolveAddress(&Address);
+                ALUin1 = ReadMem(Address, 8);
+                WriteBackSize = 8;
+                OpMaskDest = Mask64; // ######
+            }
+            else if (Operand1[0] == 'D')
+            {
+                ResolveAddress(&Address);
+                ALUin1 = ReadMem(Address, 4);
+                WriteBackSize = 4;
+            }
+            else if (Operand1[0] == 'W')
+            {
+                ResolveAddress(&Address);
+                ALUin1 = ReadMem(Address, 2);
+                WriteBackSize = 2;
+            }
+            else if (Operand1[0] == 'B')
+            {
+                ResolveAddress(&Address);
+                ALUin1 = ReadMem(Address, 1);
+                WriteBackSize = 1;
+            }
+            else
+            {
+            FetchLiteral(Operand1, &ALUin1);
+            }
+            WriteBackAddress = Address;
+            ALUin1 = ALUin1 & OpMaskDest;
+            ALUin2 = ALUin2 & OpMaskDest;
+        }
+
+        if(!FetchRegister(Operand2, &ALUin2))
+        {
+            long long int Address;
+            if (Operand2[0] == 'Q')
+            {
+                ResolveAddress(&Address);
+                ALUin2 = ReadMem(Address, 8);
+            }
+            else if (Operand2[0] == 'D')
+            {
+                ResolveAddress(&Address);
+                ALUin2 = ReadMem(Address, 4);
+            }
+            else if (Operand2[0] == 'W')
+            {
+                ResolveAddress(&Address);
+                ALUin2 = ReadMem(Address, 2);
+            }
+            else if (Operand2[0] == 'B')
+            {
+                ResolveAddress(&Address);
+                ALUin2 = ReadMem(Address, 1);
+            }
+            else
+            {
+            FetchLiteral(Operand2, &ALUin2);
+            }
+        }
+    }
+void WriteBack()
+{
+    ALUout = ALUout & OpMaskDest;
+    long long int tmp;
+    if(FetchRegister(Operand1, &tmp))
+    {
+        *WriteBackDest = ALUout;
+    }
+    else
+    {
+        WriteMem(WriteBackAddress, WriteBackSize, ALUout);
+    }
+}
+void ProcadureForAllMnemoninc()
+
+{
+    if (!strcmp(Mnemonic, "add"))
+    {
+        ALUout = ALUin1 + ALUin2;
+        OF = ALUin1 > OpMaskSource - ALUin2?1:0;
+        CF = ALUin1 > OpMaskSource - ALUin2?1:0;
+        SF = CheckSF();
+        ZF = ALUout?0:1;
+        return;
+    }
+    if (!strcmp(Mnemonic, "addsd"))
+    {
+        ALUout = ALUin1 + ALUin2;
+        OF = ALUin1 > OpMaskSource - ALUin2?1:0;
+        CF = ALUin1 > OpMaskSource - ALUin2?1:0;
+        SF = CheckSF();
+        ZF = ALUout?0:1;
+        return;
+    }
+    if (!strcmp(Mnemonic, "and"))
+    {
+        ALUout = ALUin1 & ALUin2;
+        SF = CheckSF();
+        ZF = ALUout?0:1;
+        return;
+    }
+    if (!strcmp(Mnemonic, "call"))
+    {
+        return;
+    }
+    if (!strcmp(Mnemonic, "cbw"))
+    {
+        if(RAX & 0x80) RAX = RAX | 0xFF00;
+        else RAX = RAX & 0x00FF;
+        return;
+    }
+    if (!strcmp(Mnemonic, "cdqe"))
+    {
+        if(RAX & 0x80000000) RAX = RAX | 0xFFFFFFFF00000000;
+        else RAX = RAX & 0x00000000FFFFFFFF;
+        return;
+    }
+    if (!strcmp(Mnemonic, "cdq"))
+    {
+        if(RAX & 0x80000000) RDX = 0xFFFFFFFF;
+        else RDX = 0;
+        return;
+    }
+    if (!strcmp(Mnemonic, "cmp"))
+    {
+        ALUout = ALUin1 - ALUin2;
+        SF = CheckSF();
+        ZF = ALUout?0:1;
+        CF = (ALUin1 > ALUin2)?1:0;
+        //OF = ???
+        return;
+    }
+    if (!strcmp(Mnemonic, "cwd"))
+    {
+        if(RAX & 0x8000) RDX = 0xFFFF;
+        else RDX = 0;
+        return;
+    }
+    if (!strcmp(Mnemonic, "dec"))
+    {
+        ALUout = ALUin1-1;
+        SF = CheckSF();
+        ZF = ALUout?0:1;
+        OF = (ALUin1 < 0 && ALUout >= 0)?1:0;
+        return;
+    }
+    if (!strcmp(Mnemonic, "div")) //???
+    {
+        long long int Divisor = ALUin1;
+        long long int RAXin = RAX;
+        asm (
+            "cqo\n"                // Sign-extend RAX into RDX:RAX
+            "idivq %[divisor]"     // Divide RDX:RAX by divisor
+            : "=a" (RAX), "=d" (RDX)   // Output operands
+            : "0" (RAXin), [divisor] "rm" (Divisor) // Input operands
+        );
+        SF = 0;
+        ZF = RAX?0:1;
+        //OF = ?
+        CF = Divisor?1:0;
+        return;
+    }
+    if (!strcmp(Mnemonic, "inc"))
+    {
+        ALUout = ALUin1+1;
+        SF = CheckSF();
+        ZF = ALUout?0:1;
+        OF = (ALUin1 > 0 && ALUout <= 0)?1:0;
+        return;
+    }
+
+
+
+
+
+    //###############################//
+    if (!strcmp(Mnemonic, "ret"))
+    {
+        RIP = RSP;
+        RSP--;
+        return;
+    }
+    if (!strcmp(Mnemonic, "mov"))
+    {
+        ALUout = ALUin2;
+        return;
+    }
+    if (!strcmp(Mnemonic, "push"))
+    {
+        int size;
+        switch (OpMaskDest)
+        {
+        case Mask64:
+            size = 8;
+            break;
+        case Mask32:
+            size = 4;
+            break;
+        case Mask16:
+            size = 2;
+            break;
+        case Mask8h || Mask8l:
+            size = 1;
+            break;
+        default:
+            break;
+        }
+        WriteMem(RSP, size, ALUin1);
+        printf("%llX címre pusholt elem %d bájt hosszan: %llX\n", RSP, size, ALUin1);
+        
+        RSP += size;
+        printf("RSP: %llX\n", RSP);
+        return;
+    }
+    if (!strcmp(Mnemonic, "pop"))
+    {
+        int size;
+        switch (OpMaskDest)
+        {
+        case Mask64:
+            size = 8;
+            break;
+        case Mask32:
+            size = 4;
+            break;
+        case Mask16:
+            size = 2;
+            break;
+        case Mask8h || Mask8l:
+            size = 1;
+            break;
+        default:
+            break;
+        }
+        ALUout = ReadMem(RSP-size, size);
+        printf("%llX címről popolt elem %d bájt hosszan: %llX\n", RSP-size, size, ALUout);
+        RSP -= size; 
+        printf("RSP: %llX\n", RSP);
+        return;
+    }
+
+    return;
+}
+void Execute()
+{
+    ProcadureForAllMnemoninc();
+}
+void Fini()
+{
+    puts("###--Fini--###");
+}
+
+//#####################################################################//
+
+int CheckSF()
+{
+    if(OpMaskDest == Mask64) return (ALUout & 0x8000000000000000) >> 63;
+    if(OpMaskDest == Mask32) return (ALUout & 0x80000000) >> 31;
+    if(OpMaskDest == Mask16) return (ALUout & 0x8000) >> 15;
+    if(OpMaskDest == Mask8l) return (ALUout & 0x80) >> 7;
+    if(OpMaskDest == Mask8h) return (ALUout & 0x8000) >> 15;
+}
+
 int FetchRegister(char* Operand, long long int* Destination)
 {
     if (!strcmp(Operand, "rax"))
     {
         *Destination = RAX;
+        WriteBackDest = &RAX;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "eax"))
     {
         *Destination = RAX;
+        WriteBackDest = &RAX;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "ax"))
     {
         *Destination = RAX;
+        WriteBackDest = &RAX;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "ah"))
     {
         *Destination = RAX;
+        WriteBackDest = &RAX;
         OpMaskDest = Mask8h;
         return 1;
     }
     if (!strcmp(Operand, "al"))
     {
         *Destination = RAX;
+        WriteBackDest = &RAX;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rbx"))
     {
         *Destination = RBX;
+        WriteBackDest = &RBX;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "ebx"))
     {
         *Destination = RBX;
+        WriteBackDest = &RBX;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "bx"))
     {
         *Destination = RBX;
+        WriteBackDest = &RBX;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "bh"))
     {
         *Destination = RBX;
+        WriteBackDest = &RBX;
         OpMaskDest = Mask8h;
         return 1;
     }
     if (!strcmp(Operand, "bl"))
     {
         *Destination = RBX;
+        WriteBackDest = &RBX;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rcx"))
     {
         *Destination = RCX;
+        WriteBackDest = &RCX;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "ecx"))
     {
         *Destination = RCX;
+        WriteBackDest = &RCX;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "cx"))
     {
         *Destination = RCX;
+        WriteBackDest = &RCX;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "ch"))
     {
         *Destination = RCX;
+        WriteBackDest = &RCX;
         OpMaskDest = Mask8h;
         return 1;
     }
     if (!strcmp(Operand, "cl"))
     {
         *Destination = RCX;
+        WriteBackDest = &RCX;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rdx"))
     {
         *Destination = RDX;
+        WriteBackDest = &RDX;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "edx"))
     {
         *Destination = RDX;
+        WriteBackDest = &RDX;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "dx"))
     {
         *Destination = RDX;
+        WriteBackDest = &RDX;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "dh"))
     {
         *Destination = RDX;
+        WriteBackDest = &RDX;
         OpMaskDest = Mask8h;
         return 1;
     }
     if (!strcmp(Operand, "dl"))
     {
         *Destination = RDX;
+        WriteBackDest = &RDX;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rdi"))
     {
         *Destination = RDI;
+        WriteBackDest = &RDI;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "edi"))
     {
         *Destination = RDI;
+        WriteBackDest = &RDI;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "di"))
     {
         *Destination = RDI;
+        WriteBackDest = &RDI;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "dil"))
     {
         *Destination = RDI;
+        WriteBackDest = &RDI;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rsi"))
     {
         *Destination = RSI;
+        WriteBackDest = &RSI;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "esi"))
     {
         *Destination = RSI;
+        WriteBackDest = &RSI;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "si"))
     {
         *Destination = RSI;
+        WriteBackDest = &RSI;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "sil"))
     {
         *Destination = RSI;
+        WriteBackDest = &RSI;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rbp"))
     {
         *Destination = RBP;
+        WriteBackDest = &RBP;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "ebp"))
     {
         *Destination = RBP;
+        WriteBackDest = &RBP;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "bp"))
     {
         *Destination = RBP;
+        WriteBackDest = &RBP;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "bpl"))
     {
         *Destination = RBP;
+        WriteBackDest = &RBP;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rsp"))
     {
         *Destination = RSP;
+        WriteBackDest = &RSP;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "esp"))
     {
         *Destination = RSP;
+        WriteBackDest = &RSP;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "sp"))
     {
         *Destination = RSP;
+        WriteBackDest = &RSP;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "spl"))
     {
         *Destination = RSP;
+        WriteBackDest = &RSP;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r8"))
     {
         *Destination = R8;
+        WriteBackDest = &R8;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r8d"))
     {
         *Destination = R8;
+        WriteBackDest = &R8;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r8w"))
     {
         *Destination = R8;
+        WriteBackDest = &R8;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r8b"))
     {
         *Destination = R8;
+        WriteBackDest = &R8;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r9"))
     {
         *Destination = R9;
+        WriteBackDest = &R9;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r9d"))
     {
         *Destination = R9;
+        WriteBackDest = &R9;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r9w"))
     {
         *Destination = R9;
+        WriteBackDest = &R9;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r9b"))
     {
         *Destination = R9;
+        WriteBackDest = &R9;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r10"))
     {
         *Destination = R10;
+        WriteBackDest = &R10;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r10d"))
     {
         *Destination = R10;
+        WriteBackDest = &R10;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r10w"))
     {
         *Destination = R10;
+        WriteBackDest = &R10;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r10b"))
     {
         *Destination = R10;
+        WriteBackDest = &R10;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r11"))
     {
         *Destination = R11;
+        WriteBackDest = &R11;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r11d"))
     {
         *Destination = R11;
+        WriteBackDest = &R11;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r11w"))
     {
         *Destination = R11;
+        WriteBackDest = &R11;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r11b"))
     {
         *Destination = R11;
+        WriteBackDest = &R11;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r12"))
     {
         *Destination = R12;
+        WriteBackDest = &R12;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r12d"))
     {
         *Destination = R12;
+        WriteBackDest = &R12;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r12w"))
     {
         *Destination = R12;
+        WriteBackDest = &R12;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r12b"))
     {
         *Destination = R12;
+        WriteBackDest = &R12;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r13"))
     {
         *Destination = R13;
+        WriteBackDest = &R13;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r13d"))
     {
         *Destination = R13;
+        WriteBackDest = &R13;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r13w"))
     {
         *Destination = R13;
+        WriteBackDest = &R13;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r13b"))
     {
         *Destination = R13;
+        WriteBackDest = &R13;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r14"))
     {
         *Destination = R14;
+        WriteBackDest = &R14;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r14d"))
     {
         *Destination = R14;
+        WriteBackDest = &R14;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r14w"))
     {
         *Destination = R14;
+        WriteBackDest = &R14;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r14b"))
     {
         *Destination = R14;
+        WriteBackDest = &R14;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r15"))
     {
         *Destination = R15;
+        WriteBackDest = &R15;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r15d"))
     {
         *Destination = R15;
+        WriteBackDest = &R15;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r15w"))
     {
         *Destination = R15;
+        WriteBackDest = &R15;
         OpMaskDest = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r15b"))
     {
         *Destination = R15;
+        WriteBackDest = &R15;
         OpMaskDest = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rip"))
     {
         *Destination = RIP;
+        WriteBackDest = &RIP;
         OpMaskDest = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "eip"))
     {
         *Destination = RIP;
+        WriteBackDest = &RIP;
         OpMaskDest = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "ip"))
     {
         *Destination = RIP;
+        WriteBackDest = &RIP;
         OpMaskDest = Mask16;
         return 1;
     }
@@ -502,7 +1022,7 @@ int ResolveAddress(long long int *Destination)
         FetchRegister(Op2, &Reg2);
         FetchLiteral(Literal, &Value);
         *Destination = Reg1 + Reg2 * Mult - Value;
-        //printf("%lld, %lld, %d, %llx\n", Reg1, Reg2, Mult, Value);
+        printf("%lld, %lld, %d, %llx\n", Reg1, Reg2, Mult, Value);
         return 11;
     }
     if (Pointer1 && Pointer2 && Pointer1 < Pointer2) // [ <register> "+" <register> [ "*1" | "*2" | "*4" | "*8" ]]
@@ -564,104 +1084,6 @@ int ResolveAddress(long long int *Destination)
     }
     return 19;
 }
-void Init()
-{
-    MemData = NULL;
-    MemDataUnit **LastData = malloc(sizeof(MemDataUnit));
-
-    MemInst = NULL;
-    MemInstUnit **LastInst = malloc(sizeof(MemInstUnit));
-    
-
-    int CodeSegment = 0;             //code segment indicator in RAM.txt
-    char *line = malloc(Mask8l);
-    FILE* RAM = fopen("RAM_DEMO.txt", "rt");
-    fgets(line, Mask8l, RAM);
-    RIP = strtol(strchr(line, 32), NULL, 16);
-    while (!feof(RAM))
-    {
-        fgets(line, Mask8l, RAM);
-        if(strstr(line, ".text"))
-        {
-            CodeSegment = 1;
-        } 
-        else if (strstr(line, ".rodata") || strstr(line, ".data") || strstr(line, ".bss"))
-        {
-            CodeSegment = 0;
-        } 
-        else 
-        {
-            if (CodeSegment) 
-            {
-                MemInstUnit* tmp = malloc(sizeof(MemInstUnit));
-                sscanf(line, "%llx   %s  %s  %s  %s  %s   %[^\n]", &(tmp->addr), tmp->mnemonic, tmp->operand1, tmp->operand2, tmp->operand3, tmp->machinecode, tmp->assembly);
-                tmp->instlength = strlen(tmp->machinecode);
-                
-                if(!MemInst)
-                {
-                    MemInst = tmp;
-                    *LastInst = tmp;
-                }
-
-                (*LastInst)->next = tmp;
-                (*LastInst) = tmp;
-                 
-            }
-            else 
-            {
-                MemDataUnit* tmp = malloc(sizeof(MemDataUnit));
-
-                sscanf(line, "%llx  %hhx", &(tmp->addr), &(tmp->byte));
-                tmp->next = NULL;
-                
-                if(!MemData)
-                {
-                    MemData = tmp;
-                    *LastData = tmp;
-                }
-
-                (*LastData)->next = tmp;
-                (*LastData) = tmp;
-                 
-            }
-        }          
-    }
-}
-void OperandFetch()
-    {
-// Load the proper values into the ALUin1 and ALUin2 based on Operand1, Operand2
-// Set the ALU masks
-// Apply constant, register content or data memory content (using proper addressing mode)
-        FetchRegister(Operand1, &ALUin1);
-        if(!FetchRegister(Operand2, &ALUin2))
-        {
-            long long int Address;
-            if (Operand2[0] == 'Q')
-            {
-                ResolveAddress(&Address);
-                ReadMem(Address, 64);
-            }
-            else if (Operand2[0] == 'D')
-            {
-                ResolveAddress(&Address);
-                ReadMem(Address, 32);
-            }
-            else if (Operand2[0] == 'W')
-            {
-                ResolveAddress(&Address);
-                ReadMem(Address, 16);
-            }
-            else if (Operand2[0] == 'B')
-            {
-                ResolveAddress(&Address);
-                ReadMem(Address, 8);
-            }
-            else
-            {
-            FetchLiteral(Operand2, &ALUin2);
-            }
-        }
-    }
 void PrintList(int m) // 1 - print MemData, 0 - print MemInst
 {
     if (m == 1)
@@ -680,5 +1102,4 @@ void PrintList(int m) // 1 - print MemData, 0 - print MemInst
         printf("%llX - %s - %s - %s - %s - %s - %s - %d\n", tmp->addr, tmp->mnemonic, tmp->operand1, tmp->operand2, tmp->operand3, tmp->machinecode, tmp->assembly, tmp->instlength);
         tmp = tmp->next;
     }
-
 }
