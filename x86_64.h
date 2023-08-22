@@ -95,6 +95,9 @@ void Execute();
 // Call the required procedure for the proper operation
 // Update the Run flag (based on RSP and RSPinit)
 
+/* JUMP INSTRUCTIONS : */ ja(); jae(); jb(); jbe(); jc(); je(); jg(); jge(); jl(); jle(); jmp(); jnc(); jne(); jnz(); jz();
+/* SET INSTRUCTIONS : */ seta(); setae(); setb(); setbe(); setc(); sete(); setg(); setge(); setl(); setle(); setnc(); setne(); setnz(); setz();
+
 void ProcadureForAllMnemoninc();
 // Based on the Mnemonic do the proper action (using ALUin1, ALUin2 and others)
 // Set of procedures for mnemonics (e.g: add(), jmp() ret(), etc.)
