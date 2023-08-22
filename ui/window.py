@@ -58,7 +58,16 @@ class MainWindow(QWidget):
 
             file = dialog.selectedFiles()[0]
 
-            self.view_model.load_emulator(file)
+            try:
+                self.view_model.load_emulator(file)
+            except ValueError as err:
+                message_box = QMessageBox()
+                message_box.setText("Emulator loading error!")
+                message_box.setInformativeText(f"{err}")
+
+                message_box.setIcon(QMessageBox.Critical)
+
+                message_box.exec()
 
         layout = QHBoxLayout()
 

@@ -1,4 +1,6 @@
+import os
 import sys
+import subprocess
 
 class Instruction():
     def __init__(
@@ -103,7 +105,18 @@ class MainWindowViewModel():
         pass
 
     def load_emulator(self, path: str):
-        pass
+        if not os.access(path, os.X_OK):
+            raise ValueError("Specified file is not an executable")
+
+        process = subprocess.Popen([path, "--gui-info"], stdout=subprocess.PIPE)
+        output, _ = process.communicate(timeout=3)
+
+        raw_output = output.decode().strip()
+
+        if process.returncode != 0 or raw_output != "asemu":
+            raise ValueError("Specified file is not Assembly Emulator")
+
+        self.emulator_path = path
 
 
 if __name__ == "__main__":

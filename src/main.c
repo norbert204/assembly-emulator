@@ -21,6 +21,11 @@ void print_help()
     puts("\t-c\tPrint credits");
 }
 
+void print_information_for_gui()
+{
+    puts("asemu");
+}
+
 int main(int argc, char *argv[])
 {
     if (argc == 1)
@@ -41,6 +46,12 @@ int main(int argc, char *argv[])
         if (strstr(argv[i], "-h"))
         {
             print_help();
+            exit(0);
+        }
+
+        if (strstr(argv[i], "--gui-info"))
+        {
+            print_information_for_gui();
             exit(0);
         }
     }
