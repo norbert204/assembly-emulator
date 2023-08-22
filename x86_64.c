@@ -208,7 +208,7 @@ void sete(){
         else ALUout = 0;
 }
 void setg(){
-    if (ZF == 0 and SF == OF) ALUout = 1;
+    if (ZF == 0 && SF == OF) ALUout = 1;
         else ALUout = 0;
 }
 void setge(){
