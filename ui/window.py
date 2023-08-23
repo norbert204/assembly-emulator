@@ -95,6 +95,15 @@ class MainWindow(QWidget):
 
         list_instructions = QListWidget()
 
+        for instruction in self.view_model.instructions:
+            item = QListWidgetItem()
+
+            item.setText(instruction.instruction)
+            if instruction == self.view_model.current_instruction():
+                item.setSelected(True)
+
+            list_instructions.addItem(list_instructions)
+
         layout.addWidget(list_instructions)
 
         return layout

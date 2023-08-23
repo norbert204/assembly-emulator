@@ -102,7 +102,15 @@ class MainWindowViewModel():
         if self.emulator_path is None:
             raise ValueError("Path to emulator is not specified.")
 
-        pass
+        process = subprocess.Popen([self.emulator_path, path], stdout=subprocess.PIPE)
+        _, output_error = process.communicate(timeout=120)
+
+        raw_error_output = output_error.decode().strip()
+
+        if process.returncode != 0:
+            raise RuntimeError(f"Error during emulator run: {raw_error_output}")
+
+        self.load_run_data()
 
     def load_emulator(self, path: str):
         if not os.access(path, os.X_OK):
@@ -117,6 +125,39 @@ class MainWindowViewModel():
             raise ValueError("Specified file is not Assembly Emulator")
 
         self.emulator_path = path
+ 
+    def load_run_data(self):
+        with open("/tmp/asemu_output", "r") as f:
+            self.instructions = list()
+            for line in f:
+                split = line.split('\t')
+                instruction = Instruction(
+                    assembly=split[-1],
+                    rip=int(split[0]),
+                    rax=int(split[1]),
+                    rbx=int(split[2]),
+                    rcx=int(split[3]),
+                    rdx=int(split[4]),
+                    rdi=int(split[5]),
+                    rsi=int(split[6]),
+                    rsp=int(split[7]),
+                    rbp=int(split[8]),
+                    r8=int(split[9]),
+                    r9=int(split[10]),
+                    r10=int(split[11]),
+                    r11=int(split[12]),
+                    r12=int(split[13]),
+                    r13=int(split[14]),
+                    r14=int(split[15]),
+                    r15=int(split[16]),
+                    cf=int(split[17]),
+                    of=int(split[18]),
+                    sf=int(split[19]),
+                    zf=int(split[20]),
+                    stack_size=int(split[21]),
+                    stack_bytes_reverse=[int(x) for x in split[22:]])
+
+                self.instructions.append(instruction)
 
 
 if __name__ == "__main__":
