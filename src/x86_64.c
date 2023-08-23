@@ -9,7 +9,7 @@ long long int ReadMem(long long int address, int size)
         {
             for (int i = 0; i < size; i++)
             {                
-                toreturn |= (long long int)(((current->byte)<<(i*8))&0xFFFFFFFF);
+                toreturn |= (long long int)(((long long int)(current->byte)<<(i*8)));
 
                 if(!current->next) break;
                 current = current->next;
@@ -72,7 +72,7 @@ void SaveState()
 
     fprintf(fp, "%llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t ",
                  RIP,    RAX,    RBX,    RCX,    RDX,    RDI,    RSI,    RSP,    RBP,    R8,     R9);
-    fprintf(fp, "%llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %d \t %d \t %d \t %d \t ",
+    fprintf(fp, "%llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %d \t %d \t %d \t #%d# \t ",
                  R10,    R11,    R12,    R13,    R14,    R15,    CF,   OF,   SF,   ZF);
 
     fprintf(fp, "<%lld> ", (RSP - RSPinit));
@@ -201,8 +201,13 @@ void OperandFetch()
 // Set the ALU masks
 // Apply constant, register content or data memory content (using proper addressing mode)
         if(!strcmp(Mnemonic, "ret")) return;
+        if(!strcmp(Mnemonic, "lea"))
+        {
+            ResolveAddress(&ALUin2);
+            return;
+        }
 
-        if(!FetchRegister(Operand1, &ALUin1))
+        if(!FetchRegister(Operand1, &ALUin1, &OpMaskDest))
         {
             long long int Address;
             if (Operand1[0] == 'Q')
@@ -217,62 +222,71 @@ void OperandFetch()
                 ResolveAddress(&Address);
                 ALUin1 = ReadMem(Address, 4);
                 WriteBackSize = 4;
+                OpMaskDest = Mask32;
             }
             else if (Operand1[0] == 'W')
             {
                 ResolveAddress(&Address);
                 ALUin1 = ReadMem(Address, 2);
                 WriteBackSize = 2;
+                OpMaskDest = Mask16;
             }
             else if (Operand1[0] == 'B')
             {
                 ResolveAddress(&Address);
                 ALUin1 = ReadMem(Address, 1);
                 WriteBackSize = 1;
+                OpMaskDest = Mask8l;
             }
             else
             {
             FetchLiteral(Operand1, &ALUin1);
+            OpMaskDest = Mask64;
             }
             WriteBackAddress = Address;
             ALUin1 = ALUin1 & OpMaskDest;
-            ALUin2 = ALUin2 & OpMaskDest;
         }
 
-        if(!FetchRegister(Operand2, &ALUin2))
+        if(!FetchRegister(Operand2, &ALUin2, &OpMaskSource))
         {
             long long int Address;
             if (Operand2[0] == 'Q')
             {
                 ResolveAddress(&Address);
                 ALUin2 = ReadMem(Address, 8);
+                OpMaskSource = Mask64;
             }
             else if (Operand2[0] == 'D')
             {
                 ResolveAddress(&Address);
                 ALUin2 = ReadMem(Address, 4);
+                OpMaskSource = Mask32;
             }
             else if (Operand2[0] == 'W')
             {
                 ResolveAddress(&Address);
                 ALUin2 = ReadMem(Address, 2);
+                OpMaskSource = Mask16;
             }
             else if (Operand2[0] == 'B')
             {
                 ResolveAddress(&Address);
                 ALUin2 = ReadMem(Address, 1);
+                OpMaskSource = Mask8l;
             }
             else
             {
             FetchLiteral(Operand2, &ALUin2);
+            OpMaskSource = Mask64;
             }
+            ALUin2 = ALUin2 & OpMaskSource;
         }
     }
 void WriteBack()
 {
     ALUout = ALUout & OpMaskDest;
-    long long int tmp;
-    if(FetchRegister(Operand1, &tmp))
+    long long int tmp, mask;
+    if(FetchRegister(Operand1, &tmp, &mask))
     {
         *WriteBackDest = ALUout;
     }
@@ -287,30 +301,37 @@ void ProcadureForAllMnemoninc()
     if (!strcmp(Mnemonic, "add"))
     {
         ALUout = ALUin1 + ALUin2;
-        OF = ALUin1 > OpMaskSource - ALUin2?1:0;
+
+        OF = (CheckSF(ALUin1, OpMaskDest) == CheckSF(ALUin2, OpMaskSource) && CheckSF(ALUout, OpMaskDest) != CheckSF(ALUin1, OpMaskDest))?1:0;
+
         CF = ALUin1 > OpMaskSource - ALUin2?1:0;
-        SF = CheckSF();
+        SF = CheckSF(ALUout, OpMaskDest);
         ZF = ALUout?0:1;
         return;
     }
     if (!strcmp(Mnemonic, "addsd"))
     {
         ALUout = ALUin1 + ALUin2;
-        OF = ALUin1 > OpMaskSource - ALUin2?1:0;
+
+        OF = (CheckSF(ALUin1, OpMaskDest) == CheckSF(ALUin2, OpMaskSource) && CheckSF(ALUout, OpMaskDest) != CheckSF(ALUin1, OpMaskDest))?1:0;
+
         CF = ALUin1 > OpMaskSource - ALUin2?1:0;
-        SF = CheckSF();
+        SF = CheckSF(ALUout, OpMaskDest);
         ZF = ALUout?0:1;
         return;
     }
     if (!strcmp(Mnemonic, "and"))
     {
         ALUout = ALUin1 & ALUin2;
-        SF = CheckSF();
+        SF = CheckSF(ALUout, OpMaskDest);
         ZF = ALUout?0:1;
         return;
     }
     if (!strcmp(Mnemonic, "call"))
     {
+        WriteMem(RSP, 8, RIP);
+        RSP -= 8;
+        RIP = ALUin1;
         return;
     }
     if (!strcmp(Mnemonic, "cbw"))
@@ -334,10 +355,10 @@ void ProcadureForAllMnemoninc()
     if (!strcmp(Mnemonic, "cmp"))
     {
         ALUout = ALUin1 - ALUin2;
-        SF = CheckSF();
+        SF = CheckSF(ALUout, OpMaskDest);
         ZF = ALUout?0:1;
-        CF = (ALUin1 > ALUin2)?1:0;
-        //OF = ???
+        CF = (ALUin1 < ALUin2)?1:0;
+        OF = (CheckSF(ALUin1, OpMaskDest) != CheckSF(ALUin2, OpMaskSource) && CheckSF(ALUout, OpMaskDest) != CheckSF(ALUin1, OpMaskDest))?1:0;
         return;
     }
     if (!strcmp(Mnemonic, "cwd"))
@@ -349,35 +370,107 @@ void ProcadureForAllMnemoninc()
     if (!strcmp(Mnemonic, "dec"))
     {
         ALUout = ALUin1-1;
-        SF = CheckSF();
+        SF = CheckSF(ALUout, OpMaskDest);
         ZF = ALUout?0:1;
         OF = (ALUin1 < 0 && ALUout >= 0)?1:0;
         return;
     }
-    if (!strcmp(Mnemonic, "div")) //???
+    if (!strcmp(Mnemonic, "div"))
     {
         long long int Divisor = ALUin1;
         long long int RAXin = RAX;
         asm (
             "cqo\n"                // Sign-extend RAX into RDX:RAX
-            "idivq %[divisor]"     // Divide RDX:RAX by divisor
+            "divq %[divisor]\n"     // Divide RDX:RAX by divisor
+            "jno div_no_of"
             : "=a" (RAX), "=d" (RDX)   // Output operands
             : "0" (RAXin), [divisor] "rm" (Divisor) // Input operands
         );
+        OF = 1;
+        asm("div_no_of:");
         SF = 0;
         ZF = RAX?0:1;
-        //OF = ?
-        CF = Divisor?1:0;
+        //CF = undefined
         return;
     }
+
+    if (!strcmp(Mnemonic, "idiv"))
+    {
+        long long int Divisor = ALUin1;
+        long long int RAXin = RAX;
+        OF = 0;
+        asm (
+            "cqo\n"                // Sign-extend RAX into RDX:RAX
+            "idivq %[divisor]\n"     // Divide RDX:RAX by divisor
+            "jno idiv_no_of"   
+            : "=a" (RAX), "=d" (RDX)   // Output operands
+            : "0" (RAXin), [divisor] "rm" (Divisor) // Input operands
+        );
+        OF = 1;
+        asm("idiv_no_of:");
+        SF = (RAX & 0x8000000000000000) >> 63;
+        ZF = RAX?0:1;
+        //CF = undefined
+        return;
+    }
+    
+
+
     if (!strcmp(Mnemonic, "inc"))
     {
         ALUout = ALUin1+1;
-        SF = CheckSF();
+        SF = CheckSF(ALUout, OpMaskDest);
         ZF = ALUout?0:1;
         OF = (ALUin1 > 0 && ALUout <= 0)?1:0;
         return;
     }
+
+    if (!strcmp(Mnemonic, "imul"))
+    {
+        long long int Divisor = ALUin1;
+        long long int RAXin = RAX;
+        OF = 0;
+        asm (
+        "imulq %[input1], %[input2]\n" // Multiply input1 by input2
+        "jno imul_no_of"
+        : [result] "=r" (ALUout)     // Output operand: result in a general-purpose register
+        : [input1] "r" (ALUin1),          // Input operand: input1 is variable 'a'
+          [input2] "r" (ALUin2)           // Input operand: input2 is variable 'b'
+    );
+        OF = 1;
+        asm("imul_no_of:");
+        SF = CheckSF(ALUout, OpMaskDest);
+        ZF = RAX?0:1;
+        //CF = undefined
+        return;
+    }
+    if (!strcmp(Mnemonic, "lea")) //szintaxis megegyezik-e a memóriacímzésnél használttal?
+    {
+        ALUout = ALUin2;
+        return;
+    }
+    if (!strcmp(Mnemonic, "leave"))
+    {
+        RSP = RBP;
+        RBP = ReadMem(RSP+8, 8);
+        return;
+    }
+    if (!strcmp(Mnemonic, "loop")) //????
+    {
+        if(RCX > 0)
+        {
+
+        }
+        return;
+    }
+    if (!strcmp(Mnemonic, "movabs"))
+    {
+        ALUout = ALUin2;
+        return;
+    }
+
+
+
 
 
 
@@ -387,7 +480,7 @@ void ProcadureForAllMnemoninc()
     if (!strcmp(Mnemonic, "ret"))
     {
         RIP = RSP;
-        RSP--;
+        RSP++;
         return;
     }
     if (!strcmp(Mnemonic, "mov"))
@@ -416,10 +509,10 @@ void ProcadureForAllMnemoninc()
             break;
         }
         WriteMem(RSP, size, ALUin1);
-        printf("%llX címre pusholt elem %d bájt hosszan: %llX\n", RSP, size, ALUin1);
+        //printf("%llX címre pusholt elem %d bájt hosszan: %llX\n", RSP, size, ALUin1);
         
-        RSP += size;
-        printf("RSP: %llX\n", RSP);
+        RSP -= size;
+        //printf("RSP: %llX\n", RSP);
         return;
     }
     if (!strcmp(Mnemonic, "pop"))
@@ -442,10 +535,10 @@ void ProcadureForAllMnemoninc()
         default:
             break;
         }
-        ALUout = ReadMem(RSP-size, size);
-        printf("%llX címről popolt elem %d bájt hosszan: %llX\n", RSP-size, size, ALUout);
-        RSP -= size; 
-        printf("RSP: %llX\n", RSP);
+        ALUout = ReadMem(RSP+size, size);
+        //printf("%llX címről popolt elem %d bájt hosszan: %llX\n", RSP+size, size, ALUout);
+        RSP += size; 
+        //printf("RSP: %llX\n", RSP);
         return;
     }
 
@@ -462,512 +555,512 @@ void Fini()
 
 //#####################################################################//
 
-int CheckSF()
+int CheckSF(int Value, long long int Mask)
 {
-    if(OpMaskDest == Mask64) return (ALUout & 0x8000000000000000) >> 63;
-    if(OpMaskDest == Mask32) return (ALUout & 0x80000000) >> 31;
-    if(OpMaskDest == Mask16) return (ALUout & 0x8000) >> 15;
-    if(OpMaskDest == Mask8l) return (ALUout & 0x80) >> 7;
-    if(OpMaskDest == Mask8h) return (ALUout & 0x8000) >> 15;
+    if(Mask == Mask64) return (Value & 0x8000000000000000) >> 63;
+    if(Mask == Mask32) return (Value & 0x80000000) >> 31;
+    if(Mask == Mask16) return (Value & 0x8000) >> 15;
+    if(Mask == Mask8l) return (Value & 0x80) >> 7;
+    if(Mask == Mask8h) return (Value & 0x8000) >> 15;
 }
 
-int FetchRegister(char* Operand, long long int* Destination)
+int FetchRegister(char* Operand, long long int* Destination, long long int* Mask)
 {
     if (!strcmp(Operand, "rax"))
     {
         *Destination = RAX;
         WriteBackDest = &RAX;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "eax"))
     {
         *Destination = RAX;
         WriteBackDest = &RAX;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "ax"))
     {
         *Destination = RAX;
         WriteBackDest = &RAX;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "ah"))
     {
         *Destination = RAX;
         WriteBackDest = &RAX;
-        OpMaskDest = Mask8h;
+        *Mask = Mask8h;
         return 1;
     }
     if (!strcmp(Operand, "al"))
     {
         *Destination = RAX;
         WriteBackDest = &RAX;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rbx"))
     {
         *Destination = RBX;
         WriteBackDest = &RBX;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "ebx"))
     {
         *Destination = RBX;
         WriteBackDest = &RBX;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "bx"))
     {
         *Destination = RBX;
         WriteBackDest = &RBX;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "bh"))
     {
         *Destination = RBX;
         WriteBackDest = &RBX;
-        OpMaskDest = Mask8h;
+        *Mask = Mask8h;
         return 1;
     }
     if (!strcmp(Operand, "bl"))
     {
         *Destination = RBX;
         WriteBackDest = &RBX;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rcx"))
     {
         *Destination = RCX;
         WriteBackDest = &RCX;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "ecx"))
     {
         *Destination = RCX;
         WriteBackDest = &RCX;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "cx"))
     {
         *Destination = RCX;
         WriteBackDest = &RCX;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "ch"))
     {
         *Destination = RCX;
         WriteBackDest = &RCX;
-        OpMaskDest = Mask8h;
+        *Mask = Mask8h;
         return 1;
     }
     if (!strcmp(Operand, "cl"))
     {
         *Destination = RCX;
         WriteBackDest = &RCX;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rdx"))
     {
         *Destination = RDX;
         WriteBackDest = &RDX;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "edx"))
     {
         *Destination = RDX;
         WriteBackDest = &RDX;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "dx"))
     {
         *Destination = RDX;
         WriteBackDest = &RDX;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "dh"))
     {
         *Destination = RDX;
         WriteBackDest = &RDX;
-        OpMaskDest = Mask8h;
+        *Mask = Mask8h;
         return 1;
     }
     if (!strcmp(Operand, "dl"))
     {
         *Destination = RDX;
         WriteBackDest = &RDX;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rdi"))
     {
         *Destination = RDI;
         WriteBackDest = &RDI;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "edi"))
     {
         *Destination = RDI;
         WriteBackDest = &RDI;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "di"))
     {
         *Destination = RDI;
         WriteBackDest = &RDI;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "dil"))
     {
         *Destination = RDI;
         WriteBackDest = &RDI;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rsi"))
     {
         *Destination = RSI;
         WriteBackDest = &RSI;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "esi"))
     {
         *Destination = RSI;
         WriteBackDest = &RSI;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "si"))
     {
         *Destination = RSI;
         WriteBackDest = &RSI;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "sil"))
     {
         *Destination = RSI;
         WriteBackDest = &RSI;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rbp"))
     {
         *Destination = RBP;
         WriteBackDest = &RBP;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "ebp"))
     {
         *Destination = RBP;
         WriteBackDest = &RBP;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "bp"))
     {
         *Destination = RBP;
         WriteBackDest = &RBP;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "bpl"))
     {
         *Destination = RBP;
         WriteBackDest = &RBP;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rsp"))
     {
         *Destination = RSP;
         WriteBackDest = &RSP;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "esp"))
     {
         *Destination = RSP;
         WriteBackDest = &RSP;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "sp"))
     {
         *Destination = RSP;
         WriteBackDest = &RSP;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "spl"))
     {
         *Destination = RSP;
         WriteBackDest = &RSP;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r8"))
     {
         *Destination = R8;
         WriteBackDest = &R8;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r8d"))
     {
         *Destination = R8;
         WriteBackDest = &R8;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r8w"))
     {
         *Destination = R8;
         WriteBackDest = &R8;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r8b"))
     {
         *Destination = R8;
         WriteBackDest = &R8;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r9"))
     {
         *Destination = R9;
         WriteBackDest = &R9;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r9d"))
     {
         *Destination = R9;
         WriteBackDest = &R9;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r9w"))
     {
         *Destination = R9;
         WriteBackDest = &R9;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r9b"))
     {
         *Destination = R9;
         WriteBackDest = &R9;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r10"))
     {
         *Destination = R10;
         WriteBackDest = &R10;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r10d"))
     {
         *Destination = R10;
         WriteBackDest = &R10;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r10w"))
     {
         *Destination = R10;
         WriteBackDest = &R10;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r10b"))
     {
         *Destination = R10;
         WriteBackDest = &R10;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r11"))
     {
         *Destination = R11;
         WriteBackDest = &R11;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r11d"))
     {
         *Destination = R11;
         WriteBackDest = &R11;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r11w"))
     {
         *Destination = R11;
         WriteBackDest = &R11;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r11b"))
     {
         *Destination = R11;
         WriteBackDest = &R11;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r12"))
     {
         *Destination = R12;
         WriteBackDest = &R12;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r12d"))
     {
         *Destination = R12;
         WriteBackDest = &R12;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r12w"))
     {
         *Destination = R12;
         WriteBackDest = &R12;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r12b"))
     {
         *Destination = R12;
         WriteBackDest = &R12;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r13"))
     {
         *Destination = R13;
         WriteBackDest = &R13;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r13d"))
     {
         *Destination = R13;
         WriteBackDest = &R13;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r13w"))
     {
         *Destination = R13;
         WriteBackDest = &R13;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r13b"))
     {
         *Destination = R13;
         WriteBackDest = &R13;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r14"))
     {
         *Destination = R14;
         WriteBackDest = &R14;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r14d"))
     {
         *Destination = R14;
         WriteBackDest = &R14;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r14w"))
     {
         *Destination = R14;
         WriteBackDest = &R14;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r14b"))
     {
         *Destination = R14;
         WriteBackDest = &R14;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "r15"))
     {
         *Destination = R15;
         WriteBackDest = &R15;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "r15d"))
     {
         *Destination = R15;
         WriteBackDest = &R15;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "r15w"))
     {
         *Destination = R15;
         WriteBackDest = &R15;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     if (!strcmp(Operand, "r15b"))
     {
         *Destination = R15;
         WriteBackDest = &R15;
-        OpMaskDest = Mask8l;
+        *Mask = Mask8l;
         return 1;
     }
     if (!strcmp(Operand, "rip"))
     {
         *Destination = RIP;
         WriteBackDest = &RIP;
-        OpMaskDest = Mask64;
+        *Mask = Mask64;
         return 1;
     }
     if (!strcmp(Operand, "eip"))
     {
         *Destination = RIP;
         WriteBackDest = &RIP;
-        OpMaskDest = Mask32;
+        *Mask = Mask32;
         return 1;
     }
     if (!strcmp(Operand, "ip"))
     {
         *Destination = RIP;
         WriteBackDest = &RIP;
-        OpMaskDest = Mask16;
+        *Mask = Mask16;
         return 1;
     }
     return 0;
@@ -989,8 +1082,9 @@ int FetchLiteral(char* Expression, long long int* Destination)
 int ResolveAddress(long long int *Destination)
 {
     char Exp[32];
-    sscanf(Operand2, "%*[^[][%31[^]]", Exp);
+    if(!sscanf(Operand2, "%*[^[][%31[^]]", Exp)) sscanf(Operand2, "%*c%31[^]]", Exp); //lea miatt, mert ott a kifejezés egyből [- el kezdődik
     int Mult;
+    long long int Mask;
     char Op1[32], Op2[32], Literal[32];
     long long int Reg1, Reg2, Value;
     char *Pointer1, *Pointer2, *Pointer3, *Pointer4;
@@ -1008,8 +1102,10 @@ int ResolveAddress(long long int *Destination)
     if (Pointer1 && Pointer2 && Pointer3) // [ <register> "+" <register> [ "*1" | "*2" | "*4" | "*8" ]  "+" <literal> ]
     {
         sscanf(Exp, "%[^+]+%[^*]*%d+%s", Op1, Op2, &Mult, Literal);
-        FetchRegister(Op1, &Reg1);
-        FetchRegister(Op2, &Reg2);
+        FetchRegister(Op1, &Reg1, &Mask);
+        Reg1 &= Mask;
+        FetchRegister(Op2, &Reg2, &Mask);
+        Reg2 &= Mask;
         FetchLiteral(Literal, &Value);
         *Destination = Reg1 + Reg2 * Mult + Value;
         //printf("%lld, %lld, %d, %llx\n", Reg1, Reg2, Mult, Value);
@@ -1018,8 +1114,10 @@ int ResolveAddress(long long int *Destination)
     if (Pointer1 && Pointer2 && Pointer4) // [ <register> "+" <register> [ "*1" | "*2" | "*4" | "*8" ]  "-" <literal> ]
     {
         sscanf(Exp, "%[^+]+%[^*]*%d-%s", Op1, Op2, &Mult, Literal);
-        FetchRegister(Op1, &Reg1);
-        FetchRegister(Op2, &Reg2);
+        FetchRegister(Op1, &Reg1, &Mask);
+        Reg1 &= Mask;
+        FetchRegister(Op2, &Reg2, &Mask);
+        Reg2 &= Mask;
         FetchLiteral(Literal, &Value);
         *Destination = Reg1 + Reg2 * Mult - Value;
         printf("%lld, %lld, %d, %llx\n", Reg1, Reg2, Mult, Value);
@@ -1028,8 +1126,10 @@ int ResolveAddress(long long int *Destination)
     if (Pointer1 && Pointer2 && Pointer1 < Pointer2) // [ <register> "+" <register> [ "*1" | "*2" | "*4" | "*8" ]]
     {
         sscanf(Exp, "%[^+]+%[^*]*%d", Op1, Op2, &Mult);
-        FetchRegister(Op1, &Reg1);
-        FetchRegister(Op2, &Reg2);
+        FetchRegister(Op1, &Reg1, &Mask);
+        Reg1 &= Mask;
+        FetchRegister(Op2, &Reg2, &Mask);
+        Reg2 &= Mask;
         *Destination = Reg1 + Reg2 * Mult;
         //printf("%lld, %lld, %d\n", Reg1, Reg2, Mult);
         return 12;
@@ -1037,7 +1137,8 @@ int ResolveAddress(long long int *Destination)
     if (Pointer1 && Pointer2 && Pointer1 > Pointer2) // [<register> [ "*1" | "*2" | "*4" | "*8" ]  "+" <literal> ]
     {
         sscanf(Exp, "%[^*]*%d+%s", Op1, &Mult, Literal);
-        FetchRegister(Op1, &Reg1);
+        FetchRegister(Op1, &Reg1, &Mask);
+        Reg1 &= Mask;
         FetchLiteral(Literal, &Value);
         *Destination = Reg1 * Mult + Value;
         //printf("%lld, %lld, %d\n", Reg1, Value, Mult);
@@ -1046,7 +1147,8 @@ int ResolveAddress(long long int *Destination)
     if (Pointer2 && Pointer4 && Pointer4 > Pointer2) // [<register> [ "*1" | "*2" | "*4" | "*8" ]  "-" <literal> ]
     {
         sscanf(Exp, "%[^*]*%d-%s", Op1, &Mult, Literal);
-        FetchRegister(Op1, &Reg1);
+        FetchRegister(Op1, &Reg1, &Mask);
+        Reg1 &= Mask;
         FetchLiteral(Literal, &Value);
         *Destination = Reg1 * Mult - Value;
         //printf("%lld, %lld, %d\n", Reg1, Value, Mult);
@@ -1055,24 +1157,27 @@ int ResolveAddress(long long int *Destination)
     if (Pointer1) // [<register> "+" <literal> ]
     {
         sscanf(Exp, "%[^+]+%s", Op1, Literal);
-        FetchRegister(Op1, &Reg1);
+        FetchRegister(Op1, &Reg1, &Mask);
+        Reg1 &= Mask;
         FetchLiteral(Literal, &Value);
         *Destination = Reg1 + Value;
-        //printf("%lld, %lld\n", Reg1, Value);
+        //printf("%llx, %llx\n", Reg1, Value);
         return 15;
     }
     if (Pointer4) // [<register> "-" <literal> ]
     {
         sscanf(Exp, "%[^-]-%s", Op1, Literal);
-        FetchRegister(Op1, &Reg1);
+        FetchRegister(Op1, &Reg1, &Mask);
+        Reg1 &= Mask;
         FetchLiteral(Literal, &Value);
         *Destination = Reg1 - Value;
         //printf("%lld, %lld\n", Reg1, Value);
         return 16;
     }
-    if (FetchRegister(Exp, &Reg1))
+    if (FetchRegister(Exp, &Reg1, &Mask))
     {
         //printf("%lld\n", Reg1);
+        Reg1 &= Mask;
         *Destination = Reg1;
         return 17;
     }
@@ -1084,9 +1189,9 @@ int ResolveAddress(long long int *Destination)
     }
     return 19;
 }
-void PrintList(int m) // 1 - print MemData, 0 - print MemInst
+void PrintList(char* s) // "data" - print MemData, "inst" - print MemInst
 {
-    if (m == 1)
+    if (!strcmp("data", s))
     {
         MemDataUnit* tmp = MemData;
         while (tmp)
@@ -1096,10 +1201,16 @@ void PrintList(int m) // 1 - print MemData, 0 - print MemInst
         }
         return;
     }
-    MemInstUnit* tmp = MemInst;
-    while (tmp)
+    if (!strcmp("inst", s))
     {
-        printf("%llX - %s - %s - %s - %s - %s - %s - %d\n", tmp->addr, tmp->mnemonic, tmp->operand1, tmp->operand2, tmp->operand3, tmp->machinecode, tmp->assembly, tmp->instlength);
-        tmp = tmp->next;
+        MemInstUnit* tmp = MemInst;
+        while (tmp)
+        {
+            printf("%llX - %s - %s - %s - %s - %s - %s - %d\n", tmp->addr, tmp->mnemonic, tmp->operand1, tmp->operand2, tmp->operand3, tmp->machinecode, tmp->assembly, tmp->instlength);
+            tmp = tmp->next;
+        }
+        return;
     }
+    puts("PrintList: invalid parameter!");
+    
 }
