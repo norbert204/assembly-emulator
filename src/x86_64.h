@@ -127,8 +127,8 @@ long long int WriteBackAddress;
 int WriteBackSize;
 
 int CheckSF();
-void PrintList(int m);
-int FetchRegister(char* Operand, long long int* Destination);
+void PrintList(char* s);
+int FetchRegister(char* Operand, long long int* Destination, long long int* Mask);
 int FetchLiteral(char* Expression, long long int* Destination);
 int ResolveAddress(long long int *Destination);
 

@@ -11,29 +11,29 @@
 
 int main()
 {
-     Init();
-     int count = 1;
-    while(Run)
-    {
-          SaveState();
-          InstructionFetch();
-          printf("%d --- %s\n", count, Mnemonic);
-          OperandFetch();
-          Execute();
-          WriteBack();
-          if(RSP < RSPinit)
-          {
-               Run = 0;
-               fprintf(stderr, "Error! RSP < RSPinit %llx  %llx\n",RSP, RSPinit);
-               break;
-          }
-          count++;      
-    }
-    Fini();
+      Init();
+//      int count = 1;
+//     while(Run)
+//     {
+//           SaveState();
+//           InstructionFetch();
+//           printf("%d --- %s\n", count, Mnemonic);
+//           OperandFetch();
+//           Execute();
+//           WriteBack();
+//           if(RSP > RSPinit)
+//           {
+//                Run = 0;
+//                fprintf(stderr, "Error! RSP (%llX) > RSPinit (%llX)\n",RSP, RSPinit);
+//                break;
+//           }
+//           count++;      
+//     }
+//     Fini();
 
-
-
-
-
+WriteMem(0x404020, 8, 0x123456787FAABBCC);
+// PrintList("data");
+long long int out = ReadMem(0x404020, 8);
+printf("%llX\n",out);
 
 }
