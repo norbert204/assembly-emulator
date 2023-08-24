@@ -66,18 +66,25 @@ void SaveState()
     FILE *fp = fopen(file, "a");
     if (fp == NULL)
     {
-        fprintf(stderr, "File error! Cannot open file!\n");
+        fprintf(stderr, "File error! Cannot open file!");
         exit(32);
     }
 
-    fprintf(fp, "%llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %llx \t ",
-                 RIP,    RAX,    RBX,    RCX,    RDX,    RDI,    RSI,    RSP,    RBP,    R8,     R9);
-    fprintf(fp, "%llx \t %llx \t %llx \t %llx \t %llx \t %llx \t %d \t %d \t %d \t #%d# \t ",
-                 R10,    R11,    R12,    R13,    R14,    R15,    CF,   OF,   SF,   ZF);
+    fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t",
+                  RIP,  RAX,  RBX,  RCX,  RDX,  RDI,  RSI,  RSP,  RBP,  R8,   R9);
+    fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\t%d\t",
+                  R10,  R11,  R12,  R13,  R14,  R15, CF, OF, SF, ZF);
 
-    fprintf(fp, "<%lld> ", (RSP - RSPinit));
-    fprintf(fp, "(\t <StackBytes_InReverseOrder>) \t ");//todo
-    fprintf(fp, "<%s> \n", Mnemonic);
+    fprintf(fp, "%lld", (RSP - RSPinit));
+    fprintf(fp, "(\t");
+
+    for (int i = RSPinit - 1; i >= RSP; i--)
+    {
+        fprintf(fp, "%c\t", (char)ReadMem(i, 1));
+    }
+    
+    fprintf(fp, ")\t");
+    fprintf(fp, "%s\n", Mnemonic);
 
     fclose(fp);
 }
@@ -99,8 +106,7 @@ void InstructionFetch()
             strcpy(Assembly, tmp->assembly);
             strcpy(MachineCode, tmp->machinecode);
             InstLength = tmp->instlength;
-            if(tmp->next != NULL) RIP = (tmp->next)->addr;
-            else RIP = 0; //RSP = RSPinit
+            RIP += tmp->instlength;
             return;
         }
         tmp = tmp->next;
@@ -163,7 +169,8 @@ void Init()
             {
                 MemInstUnit* tmp = malloc(sizeof(MemInstUnit));
                 sscanf(line, "%llx   %s  %s  %s  %s  %s   %[^\n]", &(tmp->addr), tmp->mnemonic, tmp->operand1, tmp->operand2, tmp->operand3, tmp->machinecode, tmp->assembly);
-                tmp->instlength = strlen(tmp->machinecode);
+                tmp->instlength = strlen(tmp->machinecode)/2;
+                if (tmp->instlength % 2 != 0) tmp->instlength += 1;
                 tmp->next = NULL;
                 
                 if(!MemInst)
@@ -200,7 +207,8 @@ void OperandFetch()
 // Load the proper values into the ALUin1 and ALUin2 based on Operand1, Operand2
 // Set the ALU masks
 // Apply constant, register content or data memory content (using proper addressing mode)
-        if(!strcmp(Mnemonic, "ret")) return;
+        if(Operand1[0] == '_') return;
+
         if(!strcmp(Mnemonic, "lea"))
         {
             ResolveAddress(&ALUin2);
@@ -444,7 +452,7 @@ void ProcadureForAllMnemoninc()
         //CF = undefined
         return;
     }
-    if (!strcmp(Mnemonic, "lea")) //szintaxis megegyezik-e a memóriacímzésnél használttal?
+    if (!strcmp(Mnemonic, "lea")) 
     {
         ALUout = ALUin2;
         return;
@@ -546,7 +554,13 @@ void ProcadureForAllMnemoninc()
 }
 void Execute()
 {
+    if(RSP > RSPinit)
+          {
+               Run = 0;
+               fprintf(stderr, "Error! RSP (%llX) > RSPinit (%llX)\n",RSP, RSPinit);
+          }
     ProcadureForAllMnemoninc();
+    
 }
 void Fini()
 {
