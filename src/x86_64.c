@@ -111,7 +111,7 @@ void InstructionFetch()
         }
         tmp = tmp->next;
     }
-    fprintf(stderr, "Error! Instruction not found!\n");
+    fprintf(stderr, "Error! Instruction not found! (0x%llx)\n", RIP);
     Run = 0;
 }
 void Init()
@@ -303,253 +303,245 @@ void WriteBack()
         WriteMem(WriteBackAddress, WriteBackSize, ALUout);
     }
 }
-void ProcadureForAllMnemoninc()
-
+void add()
 {
-    if (!strcmp(Mnemonic, "add"))
-    {
-        ALUout = ALUin1 + ALUin2;
+    ALUout = ALUin1 + ALUin2;
 
-        OF = (CheckSF(ALUin1, OpMaskDest) == CheckSF(ALUin2, OpMaskSource) && CheckSF(ALUout, OpMaskDest) != CheckSF(ALUin1, OpMaskDest))?1:0;
+    OF = (CheckSF(ALUin1, OpMaskDest) == CheckSF(ALUin2, OpMaskSource) && CheckSF(ALUout, OpMaskDest) != CheckSF(ALUin1, OpMaskDest)) ? 1 : 0;
 
-        CF = ALUin1 > OpMaskSource - ALUin2?1:0;
-        SF = CheckSF(ALUout, OpMaskDest);
-        ZF = ALUout?0:1;
-        return;
-    }
-    if (!strcmp(Mnemonic, "addsd"))
-    {
-        ALUout = ALUin1 + ALUin2;
+    CF = ALUin1 > OpMaskSource - ALUin2 ? 1 : 0;
+    SF = CheckSF(ALUout, OpMaskDest);
+    ZF = ALUout ? 0 : 1;
+    return;
+}
+void addsd()
+{
+    ALUout = ALUin1 + ALUin2;
 
-        OF = (CheckSF(ALUin1, OpMaskDest) == CheckSF(ALUin2, OpMaskSource) && CheckSF(ALUout, OpMaskDest) != CheckSF(ALUin1, OpMaskDest))?1:0;
+    OF = (CheckSF(ALUin1, OpMaskDest) == CheckSF(ALUin2, OpMaskSource) && CheckSF(ALUout, OpMaskDest) != CheckSF(ALUin1, OpMaskDest)) ? 1 : 0;
 
-        CF = ALUin1 > OpMaskSource - ALUin2?1:0;
-        SF = CheckSF(ALUout, OpMaskDest);
-        ZF = ALUout?0:1;
-        return;
-    }
-    if (!strcmp(Mnemonic, "and"))
-    {
-        ALUout = ALUin1 & ALUin2;
-        SF = CheckSF(ALUout, OpMaskDest);
-        ZF = ALUout?0:1;
-        return;
-    }
-    if (!strcmp(Mnemonic, "call"))
-    {
-        WriteMem(RSP, 8, RIP);
-        RSP -= 8;
-        RIP = ALUin1;
-        return;
-    }
-    if (!strcmp(Mnemonic, "cbw"))
-    {
-        if(RAX & 0x80) RAX = RAX | 0xFF00;
-        else RAX = RAX & 0x00FF;
-        return;
-    }
-    if (!strcmp(Mnemonic, "cdqe"))
-    {
-        if(RAX & 0x80000000) RAX = RAX | 0xFFFFFFFF00000000;
-        else RAX = RAX & 0x00000000FFFFFFFF;
-        return;
-    }
-    if (!strcmp(Mnemonic, "cdq"))
-    {
-        if(RAX & 0x80000000) RDX = 0xFFFFFFFF;
-        else RDX = 0;
-        return;
-    }
-    if (!strcmp(Mnemonic, "cmp"))
-    {
-        ALUout = ALUin1 - ALUin2;
-        SF = CheckSF(ALUout, OpMaskDest);
-        ZF = ALUout?0:1;
-        CF = (ALUin1 < ALUin2)?1:0;
-        OF = (CheckSF(ALUin1, OpMaskDest) != CheckSF(ALUin2, OpMaskSource) && CheckSF(ALUout, OpMaskDest) != CheckSF(ALUin1, OpMaskDest))?1:0;
-        return;
-    }
-    if (!strcmp(Mnemonic, "cwd"))
-    {
-        if(RAX & 0x8000) RDX = 0xFFFF;
-        else RDX = 0;
-        return;
-    }
-    if (!strcmp(Mnemonic, "dec"))
-    {
-        ALUout = ALUin1-1;
-        SF = CheckSF(ALUout, OpMaskDest);
-        ZF = ALUout?0:1;
-        OF = (ALUin1 < 0 && ALUout >= 0)?1:0;
-        return;
-    }
-    if (!strcmp(Mnemonic, "div"))
-    {
-        long long int Divisor = ALUin1;
-        long long int RAXin = RAX;
-        asm (
-            "cqo\n"                // Sign-extend RAX into RDX:RAX
-            "divq %[divisor]\n"     // Divide RDX:RAX by divisor
-            "jno div_no_of"
-            : "=a" (RAX), "=d" (RDX)   // Output operands
-            : "0" (RAXin), [divisor] "rm" (Divisor) // Input operands
-        );
-        OF = 1;
-        asm("div_no_of:");
-        SF = 0;
-        ZF = RAX?0:1;
-        //CF = undefined
-        return;
-    }
+    CF = ALUin1 > OpMaskSource - ALUin2 ? 1 : 0;
+    SF = CheckSF(ALUout, OpMaskDest);
+    ZF = ALUout ? 0 : 1;
+    return;
+}
+void and ()
+{
+    ALUout = ALUin1 & ALUin2;
+    SF = CheckSF(ALUout, OpMaskDest);
+    ZF = ALUout ? 0 : 1;
+    return;
+}
+void call()
+{
+    WriteMem(RSP, 8, RIP);
+    RSP -= 8;
+    RIP = ALUin1;
+    return;
+}
+void cbw()
+{
+    if (RAX & 0x80)
+        RAX = RAX | 0xFF00;
+    else
+        RAX = RAX & 0x00FF;
+    return;
+}
+void cdqe()
+{
+    if (RAX & 0x80000000)
+        RAX = RAX | 0xFFFFFFFF00000000;
+    else
+        RAX = RAX & 0x00000000FFFFFFFF;
+    return;
+}
+void cdq()
+{
+    if (RAX & 0x80000000)
+        RDX = 0xFFFFFFFF;
+    else
+        RDX = 0;
+    return;
+}
+void cmp()
+{
+    ALUout = ALUin1 - ALUin2;
+    SF = CheckSF(ALUout, OpMaskDest);
+    ZF = ALUout ? 0 : 1;
+    CF = (ALUin1 < ALUin2) ? 1 : 0;
+    OF = (CheckSF(ALUin1, OpMaskDest) != CheckSF(ALUin2, OpMaskSource) && CheckSF(ALUout, OpMaskDest) != CheckSF(ALUin1, OpMaskDest)) ? 1 : 0;
+    return;
+}
+void cwd()
+{
+    if (RAX & 0x8000)
+        RDX = 0xFFFF;
+    else
+        RDX = 0;
+    return;
+}
+void dec()
+{
+    ALUout = ALUin1 - 1;
+    SF = CheckSF(ALUout, OpMaskDest);
+    ZF = ALUout ? 0 : 1;
+    OF = (ALUin1 < 0 && ALUout >= 0) ? 1 : 0;
+    return;
+}
+void div_()
+{
+    long long int Divisor = ALUin1;
+    long long int RAXin = RAX;
+    asm(
+        "cqo\n"             // Sign-extend RAX into RDX:RAX
+        "divq %[divisor]\n" // Divide RDX:RAX by divisor
+        "jno div_no_of"
+        : "=a"(RAX), "=d"(RDX)                // Output operands
+        : "0"(RAXin), [divisor] "rm"(Divisor) // Input operands
+    );
+    OF = 1;
+    asm("div_no_of:");
+    SF = 0;
+    ZF = RAX ? 0 : 1;
+    // CF = undefined
+    return;
+}
 
-    if (!strcmp(Mnemonic, "idiv"))
-    {
-        long long int Divisor = ALUin1;
-        long long int RAXin = RAX;
-        OF = 0;
-        asm (
-            "cqo\n"                // Sign-extend RAX into RDX:RAX
-            "idivq %[divisor]\n"     // Divide RDX:RAX by divisor
-            "jno idiv_no_of"   
-            : "=a" (RAX), "=d" (RDX)   // Output operands
-            : "0" (RAXin), [divisor] "rm" (Divisor) // Input operands
-        );
-        OF = 1;
-        asm("idiv_no_of:");
-        SF = (RAX & 0x8000000000000000) >> 63;
-        ZF = RAX?0:1;
-        //CF = undefined
-        return;
-    }
-    
+void idiv()
+{
+    long long int Divisor = ALUin1;
+    long long int RAXin = RAX;
+    OF = 0;
+    asm(
+        "cqo\n"              // Sign-extend RAX into RDX:RAX
+        "idivq %[divisor]\n" // Divide RDX:RAX by divisor
+        "jno idiv_no_of"
+        : "=a"(RAX), "=d"(RDX)                // Output operands
+        : "0"(RAXin), [divisor] "rm"(Divisor) // Input operands
+    );
+    OF = 1;
+    asm("idiv_no_of:");
+    SF = (RAX & 0x8000000000000000) >> 63;
+    ZF = RAX ? 0 : 1;
+    // CF = undefined
+    return;
+}
 
+void inc()
+{
+    ALUout = ALUin1 + 1;
+    SF = CheckSF(ALUout, OpMaskDest);
+    ZF = ALUout ? 0 : 1;
+    OF = (ALUin1 > 0 && ALUout <= 0) ? 1 : 0;
+    return;
+}
 
-    if (!strcmp(Mnemonic, "inc"))
-    {
-        ALUout = ALUin1+1;
-        SF = CheckSF(ALUout, OpMaskDest);
-        ZF = ALUout?0:1;
-        OF = (ALUin1 > 0 && ALUout <= 0)?1:0;
-        return;
-    }
-
-    if (!strcmp(Mnemonic, "imul"))
-    {
-        long long int Divisor = ALUin1;
-        long long int RAXin = RAX;
-        OF = 0;
-        asm (
+void imul()
+{
+    long long int Divisor = ALUin1;
+    long long int RAXin = RAX;
+    OF = 0;
+    asm(
         "imulq %[input1], %[input2]\n" // Multiply input1 by input2
         "jno imul_no_of"
-        : [result] "=r" (ALUout)     // Output operand: result in a general-purpose register
-        : [input1] "r" (ALUin1),          // Input operand: input1 is variable 'a'
-          [input2] "r" (ALUin2)           // Input operand: input2 is variable 'b'
+        : [result] "=r"(ALUout) // Output operand: result in a general-purpose register
+        : [input1] "r"(ALUin1), // Input operand: input1 is variable 'a'
+          [input2] "r"(ALUin2)  // Input operand: input2 is variable 'b'
     );
-        OF = 1;
-        asm("imul_no_of:");
-        SF = CheckSF(ALUout, OpMaskDest);
-        ZF = RAX?0:1;
-        //CF = undefined
-        return;
-    }
-    if (!strcmp(Mnemonic, "lea")) 
+    OF = 1;
+    asm("imul_no_of:");
+    SF = CheckSF(ALUout, OpMaskDest);
+    ZF = RAX ? 0 : 1;
+    // CF = undefined
+    return;
+}
+void lea()
+{
+    ALUout = ALUin2;
+    return;
+}
+void leave()
+{
+    RSP = RBP;
+    RBP = ReadMem(RSP + 8, 8);
+    return;
+}
+void loop() //????
+{
+    if (RCX > 0)
     {
-        ALUout = ALUin2;
-        return;
     }
-    if (!strcmp(Mnemonic, "leave"))
+    return;
+}
+void movabs()
+{
+    ALUout = ALUin2;
+    return;
+}
+
+// ###############################//
+void ret()
+{
+    RIP = RSP;
+    RSP++;
+    return;
+}
+void mov()
+{
+    ALUout = ALUin2;
+    return;
+}
+void push()
+{
+    int size;
+    switch (OpMaskDest)
     {
-        RSP = RBP;
-        RBP = ReadMem(RSP+8, 8);
-        return;
+    case Mask64:
+        size = 8;
+        break;
+    case Mask32:
+        size = 4;
+        break;
+    case Mask16:
+        size = 2;
+        break;
+    case Mask8h || Mask8l:
+        size = 1;
+        break;
+    default:
+        break;
     }
-    if (!strcmp(Mnemonic, "loop")) //????
+    WriteMem(RSP, size, ALUin1);
+    // printf("%llX címre pusholt elem %d bájt hosszan: %llX\n", RSP, size, ALUin1);
+
+    RSP -= size;
+    // printf("RSP: %llX\n", RSP);
+    return;
+}
+void pop()
+{
+    int size;
+    switch (OpMaskDest)
     {
-        if(RCX > 0)
-        {
-
-        }
-        return;
+    case Mask64:
+        size = 8;
+        break;
+    case Mask32:
+        size = 4;
+        break;
+    case Mask16:
+        size = 2;
+        break;
+    case Mask8h || Mask8l:
+        size = 1;
+        break;
+    default:
+        break;
     }
-    if (!strcmp(Mnemonic, "movabs"))
-    {
-        ALUout = ALUin2;
-        return;
-    }
-
-
-
-
-
-
-
-
-    //###############################//
-    if (!strcmp(Mnemonic, "ret"))
-    {
-        RIP = RSP;
-        RSP++;
-        return;
-    }
-    if (!strcmp(Mnemonic, "mov"))
-    {
-        ALUout = ALUin2;
-        return;
-    }
-    if (!strcmp(Mnemonic, "push"))
-    {
-        int size;
-        switch (OpMaskDest)
-        {
-        case Mask64:
-            size = 8;
-            break;
-        case Mask32:
-            size = 4;
-            break;
-        case Mask16:
-            size = 2;
-            break;
-        case Mask8h || Mask8l:
-            size = 1;
-            break;
-        default:
-            break;
-        }
-        WriteMem(RSP, size, ALUin1);
-        //printf("%llX címre pusholt elem %d bájt hosszan: %llX\n", RSP, size, ALUin1);
-        
-        RSP -= size;
-        //printf("RSP: %llX\n", RSP);
-        return;
-    }
-    if (!strcmp(Mnemonic, "pop"))
-    {
-        int size;
-        switch (OpMaskDest)
-        {
-        case Mask64:
-            size = 8;
-            break;
-        case Mask32:
-            size = 4;
-            break;
-        case Mask16:
-            size = 2;
-            break;
-        case Mask8h || Mask8l:
-            size = 1;
-            break;
-        default:
-            break;
-        }
-        ALUout = ReadMem(RSP+size, size);
-        //printf("%llX címről popolt elem %d bájt hosszan: %llX\n", RSP+size, size, ALUout);
-        RSP += size; 
-        //printf("RSP: %llX\n", RSP);
-        return;
-    }
-
+    ALUout = ReadMem(RSP + size, size);
+    // printf("%llX címről popolt elem %d bájt hosszan: %llX\n", RSP+size, size, ALUout);
+    RSP += size;
+    // printf("RSP: %llX\n", RSP);
     return;
 }
 void Execute()
@@ -559,11 +551,33 @@ void Execute()
                Run = 0;
                fprintf(stderr, "Error! RSP (%llX) > RSPinit (%llX)\n",RSP, RSPinit);
           }
-    ProcadureForAllMnemoninc();
-    
+    if (!strcmp(Mnemonic, "add")) add();
+    if (!strcmp(Mnemonic, "addsd")) addsd();
+    if (!strcmp(Mnemonic, "and")) and();
+    if (!strcmp(Mnemonic, "call")) call();
+    if (!strcmp(Mnemonic, "cbw")) cbw();
+    if (!strcmp(Mnemonic, "cdq")) cdqe();
+    if (!strcmp(Mnemonic, "cmp")) cmp();
+    if (!strcmp(Mnemonic, "cwd")) cwd();
+    if (!strcmp(Mnemonic, "dec")) dec();
+    if (!strcmp(Mnemonic, "div")) div_();
+    if (!strcmp(Mnemonic, "idiv")) idiv();
+    if (!strcmp(Mnemonic, "inc")) inc();
+    if (!strcmp(Mnemonic, "imul")) imul();
+    if (!strcmp(Mnemonic, "lea")) lea();
+    if (!strcmp(Mnemonic, "leave")) leave();
+    if (!strcmp(Mnemonic, "loop")) loop();
+    if (!strcmp(Mnemonic, "mov")) mov();
+    if (!strcmp(Mnemonic, "movabs")) movabs();
+
+    //##########################
+    if (!strcmp(Mnemonic, "ret")) ret();
+    if (!strcmp(Mnemonic, "push")) push();
+    if (!strcmp(Mnemonic, "pop")) pop();
 }
 void Fini()
 {
+    SaveState();
     puts("###--Fini--###");
 }
 
@@ -576,6 +590,14 @@ int CheckSF(int Value, long long int Mask)
     if(Mask == Mask16) return (Value & 0x8000) >> 15;
     if(Mask == Mask8l) return (Value & 0x80) >> 7;
     if(Mask == Mask8h) return (Value & 0x8000) >> 15;
+}
+int CheckZF(int Value, long long int Mask)
+{
+    if(Mask == Mask64) return (Mask64 & Value)?0:1;
+    if(Mask == Mask32) return (Mask32 & Value)?0:1;
+    if(Mask == Mask16) return (Mask16 & Value)?0:1;
+    if(Mask == Mask8l) return (Mask8l & Value)?0:1;
+    if(Mask == Mask8h) return ((Mask8h & Value))?0:1;
 }
 
 int FetchRegister(char* Operand, long long int* Destination, long long int* Mask)
