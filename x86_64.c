@@ -76,17 +76,17 @@ void SaveState()
         exit(32);
     }
 
-    fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t",
+    fprintf(fp, "%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t",
                   RIP,  RAX,  RBX,  RCX,  RDX,  RDI,  RSI,  RSP,  RBP,  R8,   R9);
-    fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\t%d\t",
+    fprintf(fp, "%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%X\t%X\t%X\t%X\t",
                   R10,  R11,  R12,  R13,  R14,  R15, CF, OF, SF, ZF);
 
-    fprintf(fp, "%lld", (RSP - RSPinit));
+    fprintf(fp, "%llX", (RSP - RSPinit));
     fprintf(fp, "(\t");
 
     for (int i = RSPinit - 1; i >= RSP; i--)
     {
-        fprintf(fp, "%d\t", ReadMem(i, 1));
+        fprintf(fp, "%X\t", ReadMem(i, 1));
     }
     
     fprintf(fp, ")\t");
@@ -131,6 +131,16 @@ void Execute(){
     if (!strcmp(Mnemonic, "setne")) setne();
     if (!strcmp(Mnemonic, "setnz")) setnz();
     if (!strcmp(Mnemonic, "setz")) setz();
+
+    /* --- SHIFT AND ROTATE INSTRUCTIONS --- */
+
+    if(!strcmp(Mnemonic, "rol")) rol();
+    if(!strcmp(Mnemonic, "ror")) ror();
+    if(!strcmp(Mnemonic, "sal")) sal();
+    if(!strcmp(Mnemonic, "sar")) sar();
+    if(!strcmp(Mnemonic, "shl")) shl();
+    if(!strcmp(Mnemonic, "shr")) shr();
+
 }
 
 /* --- JUMP INSTRUCTIONS ---*/
@@ -238,4 +248,41 @@ void setnz(){
 void setz(){
     if (ZF == 1) ALUout = 1;
         else ALUout = 0;
+}
+
+/* --- SHIFT AND ROTATE INSTRUCTIONS --- */
+
+void rol(){
+    ALUout = (ALUin1 << ALUin2) | (ALUin1 >> (63 - ALUin2));
+}
+void ror(){
+    ALUout = (ALUin1 >> ALUin2) | (ALUin1 << (63 - ALUin2));
+}
+void sal(){
+    int bitState;
+    bitState = (ALUin1 >> (63 - (ALUin2 -1))) & 1;
+    ALUout = ALUin1 << ALUin2;
+    if (ALUin2 == 0) {}
+    else{ CF = bitState; }
+}
+void sar(){
+    int bitState;
+    bitState = (ALUin1 >> (ALUin2 - 1)) & 1;
+    ALUout = ALUin1 >> ALUin2;
+    if (ALUin2 == 0) {}
+    else{ CF = bitState; }
+}
+void shl(){
+    int bitState;
+    bitState = (ALUin1 >> (63 - (ALUin2 -1))) & 1;
+    ALUout = ALUin1 << ALUin2;
+    if (ALUin2 == 0) {}
+    else{ CF = bitState; }
+}
+void shr(){
+    int bitState;
+    bitState = (ALUin1 >> (ALUin2 - 1)) & 1;
+    ALUout = ALUin1 >> ALUin2;
+    if (ALUin2 == 0) {}
+    else{ CF = bitState; }
 }
