@@ -1,7 +1,10 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include "ram_file/ram_file.h"
+#include <stdlib.h>
+
+
+#include "x86_64.h"
+#include "x86_64.c"
 
 void print_credits()
 {
@@ -24,6 +27,7 @@ void print_help()
 
 int main(int argc, char *argv[])
 {
+
     if (argc == 1)
     {
         print_help();
@@ -48,7 +52,18 @@ int main(int argc, char *argv[])
 
     printf("File to process: %s", argv[argc - 1]);
 
-    create_ram_file(argv[argc - 1]);
-
+    Init();
+    int count = 1;
+    while(Run)
+    {
+          SaveState();
+          InstructionFetch();
+          printf("%d --- %s\n", count, Mnemonic);
+          OperandFetch();
+          Execute();
+          WriteBack();
+          count++;
+    }
+    Fini();
     return 0;
 }
