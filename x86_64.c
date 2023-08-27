@@ -253,14 +253,14 @@ void setz(){
 /* --- SHIFT AND ROTATE INSTRUCTIONS --- */
 
 void rol(){
-    ALUout = (ALUin1 << ALUin2) | (ALUin1 >> (63 - ALUin2));
+    ALUout = (ALUin1 << ALUin2) | (ALUin1 >> (63 - (ALUin2 - 1)));
 }
 void ror(){
-    ALUout = (ALUin1 >> ALUin2) | (ALUin1 << (63 - ALUin2));
+    ALUout = (ALUin1 >> ALUin2) | (ALUin1 << (63 - (ALUin2 - 1)));
 }
 void sal(){
     int bitState;
-    bitState = (ALUin1 >> (63 - (ALUin2 -1))) & 1;
+    bitState = (ALUin1 >> (63 - (ALUin2 - 1))) & 1;
     ALUout = ALUin1 << ALUin2;
     if (ALUin2 == 0) {}
     else{ CF = bitState; }
