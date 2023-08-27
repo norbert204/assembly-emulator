@@ -155,7 +155,4 @@ void handle_data_segments(segment segment, FILE *in, FILE *out)
     }
 
     fseek(in, last_file_pos, SEEK_SET);
-    fgets(line, 400, in);
-    printf("Break line: %s\n", line);
-    fseek(in, last_file_pos, SEEK_SET);
 }
