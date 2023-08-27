@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "x86_64.h"
+#include "emulator/x86_64.h"
 #include "ram_file/ram_file.h"
 
 void print_credits()
