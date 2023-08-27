@@ -222,7 +222,6 @@ void Init()
                 MemInstUnit* tmp = malloc(sizeof(MemInstUnit));
                 sscanf(line, "%llx   %s  %s  %s  %s  %s   %[^\n]", &(tmp->addr), tmp->mnemonic, tmp->operand1, tmp->operand2, tmp->operand3, tmp->machinecode, tmp->assembly);
                 tmp->instlength = strlen(tmp->machinecode)/2;
-                if (tmp->instlength % 2 != 0) tmp->instlength += 1;
                 tmp->next = NULL;
                 
                 if(!MemInst)
