@@ -1,10 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
-
 #include "x86_64.h"
-#include "x86_64.c"
+#include "ram_file/ram_file.h"
 
 void print_credits()
 {
@@ -25,6 +23,26 @@ void print_help()
     puts("\t-c\tPrint credits");
 }
 
+void emulation()
+{
+    Init();
+
+    int count = 1;
+
+    while(Run)
+    {
+          SaveState();
+          InstructionFetch();
+          printf("%d --- %s\n", count, Mnemonic);
+          OperandFetch();
+          Execute();
+          WriteBack();
+          count++;
+    }
+
+    Fini();
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -34,7 +52,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    // Handle the optional parameters
+    // Handle the optional parameters.
     for (int i = 0; i < argc; i++)
     {
         if (strstr(argv[i], "-c"))
@@ -50,20 +68,11 @@ int main(int argc, char *argv[])
         }
     }
 
-    printf("File to process: %s", argv[argc - 1]);
+    // First we create the RAM file.
+    create_ram_file(argv[argc - 1]);
 
-    Init();
-    int count = 1;
-    while(Run)
-    {
-          SaveState();
-          InstructionFetch();
-          printf("%d --- %s\n", count, Mnemonic);
-          OperandFetch();
-          Execute();
-          WriteBack();
-          count++;
-    }
-    Fini();
+    // Then run the emulator.
+    emulation();
+
     return 0;
 }
