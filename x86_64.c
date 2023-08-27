@@ -253,31 +253,40 @@ void setz(){
 /* --- SHIFT AND ROTATE INSTRUCTIONS --- */
 
 void rol(){
-    ALUout = (ALUin1 << ALUin2) | (ALUin1 >> (63 - (ALUin2 - 1)));
+    ALUout = (ALUin1 << ALUin2) | (ALUin1 >> (64 - ALUin2));
+    CF = ALUin1 >> (63 - (ALUin2 - 1)) & 1;
+    if(ALUin2 == 1) { OF = CF ^ ((ALUout >> 63) & 1); }
 }
 void ror(){
-    ALUout = (ALUin1 >> ALUin2) | (ALUin1 << (63 - (ALUin2 - 1)));
+    ALUout = (ALUin1 >> ALUin2) | (ALUin1 << (64 - ALUin2));
+    CF = ALUin1 >> (ALUin2 - 1) & 1;
+    if (ALUin2 == 1) { OF = ((ALUout >> 63) & 1) ^ ((ALUout >> 62) & 1); }
 }
 void sal(){
     int bitState;
     bitState = (ALUin1 >> (63 - (ALUin2 - 1))) & 1;
-    ALUout = ALUin1 << ALUin2;
+    ALUout = ALUin1 << ALUin2;    
     if (ALUin2 == 0) {}
-    else{ CF = bitState; }
+    else { CF = bitState; }
+    if (ALUin2 == 1 && OF == CF) { OF = 0; }
+    else { OF = 1; }
 }
 void sar(){
     int bitState;
     bitState = (ALUin1 >> (ALUin2 - 1)) & 1;
     ALUout = ALUin1 >> ALUin2;
     if (ALUin2 == 0) {}
-    else{ CF = bitState; }
+    else { CF = bitState; }
+    if (ALUin2 == 1) { OF = 0; }
 }
 void shl(){
     int bitState;
     bitState = (ALUin1 >> (63 - (ALUin2 -1))) & 1;
     ALUout = ALUin1 << ALUin2;
     if (ALUin2 == 0) {}
-    else{ CF = bitState; }
+    else { CF = bitState; }
+    if (ALUin2 == 1 && OF == CF) { OF = 0; }
+    else { OF = 1; }
 }
 void shr(){
     int bitState;
@@ -285,4 +294,5 @@ void shr(){
     ALUout = ALUin1 >> ALUin2;
     if (ALUin2 == 0) {}
     else{ CF = bitState; }
+    if (ALUin2 == 1) { OF = (ALUin1 >> 63) & 1; }
 }
