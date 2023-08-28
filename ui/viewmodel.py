@@ -2,6 +2,8 @@ import os
 import sys
 import subprocess
 
+from PyQt5.QtCore import QObject, pyqtSignal
+
 class Instruction():
     def __init__(
             self,
@@ -86,8 +88,14 @@ class Instruction():
         }
 
 
-class MainWindowViewModel():
+class MainWindowViewModel(QObject):
+    signal_emulator_path = pyqtSignal(str)
+    signal_current_instruction = pyqtSignal(Instruction)
+    signal_instructions = pyqtSignal(list)
+
     def __init__(self):
+        super(QObject, self).__init__()
+
         self.instructions = list()
         self._current_instruction = 0
         self.emulator_path = None
@@ -105,9 +113,8 @@ class MainWindowViewModel():
         process = subprocess.Popen([self.emulator_path, path], stdout=subprocess.PIPE)
         _, output_error = process.communicate(timeout=120)
 
-        raw_error_output = output_error.decode().strip()
-
         if process.returncode != 0:
+            raw_error_output = output_error.decode().strip()
             raise RuntimeError(f"Error during emulator run: {raw_error_output}")
 
         self.load_run_data()
@@ -125,6 +132,8 @@ class MainWindowViewModel():
             raise ValueError("Specified file is not Assembly Emulator")
 
         self.emulator_path = path
+
+        self.signal_emulator_path.emit(self.emulator_path)
  
     def load_run_data(self):
         with open("/tmp/asemu_output", "r") as f:
@@ -158,6 +167,9 @@ class MainWindowViewModel():
                     stack_bytes_reverse=[int(x) for x in split[22:]])
 
                 self.instructions.append(instruction)
+
+        self.signal_instructions.emit(self.instructions)
+        self.current_instruction.emit(self.current_instruction())
 
 
 if __name__ == "__main__":

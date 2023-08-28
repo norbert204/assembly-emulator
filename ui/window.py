@@ -1,9 +1,9 @@
 import sys
-
-from PyQt5.QtCore import Qt
+from PyQt5 import QtCore
+from PyQt5.QtCore import Qt, pyqtSlot
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from viewmodel import MainWindowViewModel
+from viewmodel import Instruction, MainWindowViewModel
 
 class MainWindow(QWidget):
     def __init__(self, view_model: MainWindowViewModel):
@@ -24,11 +24,47 @@ class MainWindow(QWidget):
 
         self.setLayout(main_layout)
 
+        # Add the layouts to the main window.
+
         main_layout.addLayout(self._create_buttons_layout(), 0, 0, 1, 3)
-        main_layout.addLayout(self._create_instructions_layout(), 1, 0, 2, 1)
+        main_layout.addLayout(self._create_instructions_layout(), 1, 0, 1, 1)
         main_layout.addLayout(self._create_stack_layout(), 1, 1, 1, 1)
-        main_layout.addLayout(self._create_memory_layout(), 2, 1, 1, 1)
-        main_layout.addLayout(self._create_register_layout(), 1, 2, 2, 1)
+        main_layout.addLayout(self._create_register_layout(), 1, 2, 1, 1)
+
+        # Connect to signals so that the UI updates.
+
+        self.view_model.signal_emulator_path.connect(self._update_emulator_path)
+        self.view_model.signal_current_instruction.connect(self._update_current_instruction)
+        self.view_model.signal_instructions.connect(self._update_instructions)
+
+
+    def _update_emulator_path(self, path: str):
+        self.label_emulator_path.setText(f"Emulator path: {path}")
+
+
+    def _update_current_instruction(self, instruction: Instruction):
+        self.layout_registers.children().clear()
+
+        for register, value in instruction.get_registers_packaged().items():
+            label_register = QLabel()
+            label_value = QLabel()
+
+            label_register.setText(register.upper())
+            label_value.setText(f"{value}")
+
+            self.layout_registers.addRow(label_register, label_value)
+
+
+    def _update_instructions(self, instructions: list[Instruction]):
+        for instruction in instructions:
+            item = QListWidgetItem()
+
+            item.setText(instruction.assembly)
+            if instruction == self.view_model.current_instruction():
+                item.setSelected(True)
+
+            self.list_instructions.addItem(item)
+
 
     def _create_buttons_layout(self) -> QLayout:
         def button_run_clicked():
@@ -71,42 +107,52 @@ class MainWindow(QWidget):
 
         layout = QHBoxLayout()
 
+        # Create widgets.
+
         button_run = QPushButton()
         button_run.setText("Run Executable")
         button_run.clicked.connect(button_run_clicked)
-
-        layout.addWidget(button_run)
 
         button_load_emulator= QPushButton()
         button_load_emulator.setText("Load emulator path")
         button_load_emulator.clicked.connect(button_load_emulator_clicked)
 
+        label_path = QLabel()
+
+        # Add widgets to layout.
+
+        layout.addWidget(button_run)
         layout.addWidget(button_load_emulator)
+        layout.addWidget(label_path)
+
+        # Register widgets as a local variables.
+
+        self.label_emulator_path = label_path
 
         return layout
+
 
     def _create_instructions_layout(self) -> QLayout:
         layout = QVBoxLayout()
 
+        # Create widgets.
+
         label_title = QLabel()
         label_title.setText("Instructions")
 
-        layout.addWidget(label_title)
-
         list_instructions = QListWidget()
 
-        for instruction in self.view_model.instructions:
-            item = QListWidgetItem()
+        # Add widgets to layout.
 
-            item.setText(instruction.instruction)
-            if instruction == self.view_model.current_instruction():
-                item.setSelected(True)
-
-            list_instructions.addItem(list_instructions)
-
+        layout.addWidget(label_title)
         layout.addWidget(list_instructions)
 
+        # Register necessary widgets as local variables.
+
+        self.instructions_list = list_instructions
+
         return layout
+
 
     def _create_register_layout(self) -> QLayout:
         layout = QFormLayout()
@@ -128,6 +174,8 @@ class MainWindow(QWidget):
 
             layout.addRow(label_register, label_value)
 
+        self.layout_registers = layout
+
         return layout
 
     def _create_stack_layout(self) -> QLayout:
@@ -143,18 +191,6 @@ class MainWindow(QWidget):
 
         return layout
 
-    def _create_memory_layout(self) -> QLayout:
-        layout = QVBoxLayout()
-
-        label_title = QLabel()
-        label_title.setText("Memory")
-
-        layout.addWidget(label_title)
-
-        list_stack = QListWidget()
-        layout.addWidget(list_stack)
-
-        return layout
 
     @staticmethod
     def load_css() -> str:
