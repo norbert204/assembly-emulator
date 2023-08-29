@@ -139,7 +139,15 @@ class MainWindowViewModel(QObject):
         with open("/tmp/asemu_output", "r") as f:
             self.instructions = list()
             for line in f:
-                split = line.split('\t')
+                split = line.split()
+
+                stack_size = int(split[21])
+
+                stack_bytes_reverse = []
+
+                if stack_size:
+                    stack_bytes_reverse=[int(x) for x in split[22:-1]]
+
                 instruction = Instruction(
                     assembly=split[-1],
                     rip=int(split[0]),
@@ -163,13 +171,13 @@ class MainWindowViewModel(QObject):
                     of=int(split[18]),
                     sf=int(split[19]),
                     zf=int(split[20]),
-                    stack_size=int(split[21]),
-                    stack_bytes_reverse=[int(x) for x in split[22:]])
+                    stack_size=stack_size,
+                    stack_bytes_reverse=stack_bytes_reverse)
 
                 self.instructions.append(instruction)
 
         self.signal_instructions.emit(self.instructions)
-        self.current_instruction.emit(self.current_instruction())
+        self.signal_current_instruction.emit(self.current_instruction())
 
 
 if __name__ == "__main__":

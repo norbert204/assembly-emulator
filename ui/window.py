@@ -5,6 +5,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from viewmodel import Instruction, MainWindowViewModel
 
+
 class MainWindow(QWidget):
     def __init__(self, view_model: MainWindowViewModel):
         super(MainWindow, self).__init__()
@@ -43,7 +44,6 @@ class MainWindow(QWidget):
 
 
     def _update_current_instruction(self, instruction: Instruction):
-        self.layout_registers.children().clear()
 
         for register, value in instruction.get_registers_packaged().items():
             label_register = QLabel()
@@ -56,11 +56,13 @@ class MainWindow(QWidget):
 
 
     def _update_instructions(self, instructions: list[Instruction]):
+        self.list_instructions.clear()
+
         for instruction in instructions:
             item = QListWidgetItem()
 
             item.setText(instruction.assembly)
-            if instruction == self.view_model.current_instruction():
+            if instruction.assembly == self.view_model.current_instruction().assembly:
                 item.setSelected(True)
 
             self.list_instructions.addItem(item)
@@ -125,7 +127,7 @@ class MainWindow(QWidget):
         layout.addWidget(button_load_emulator)
         layout.addWidget(label_path)
 
-        # Register widgets as a local variables.
+        # Register widgets as a instance variables.
 
         self.label_emulator_path = label_path
 
@@ -147,9 +149,9 @@ class MainWindow(QWidget):
         layout.addWidget(label_title)
         layout.addWidget(list_instructions)
 
-        # Register necessary widgets as local variables.
+        # Register necessary widgets as instance variables.
 
-        self.instructions_list = list_instructions
+        self.list_instructions = list_instructions
 
         return layout
 
@@ -178,16 +180,25 @@ class MainWindow(QWidget):
 
         return layout
 
+
     def _create_stack_layout(self) -> QLayout:
         layout = QVBoxLayout()
+
+        # Create widgets.
 
         label_title = QLabel()
         label_title.setText("Stack")
 
-        layout.addWidget(label_title)
-
         list_stack = QListWidget()
+
+        # Add widgets to layout.
+
+        layout.addWidget(label_title)
         layout.addWidget(list_stack)
+
+        # Register necessary widgets as instance variables.
+
+        self.list_stack = list_stack
 
         return layout
 
