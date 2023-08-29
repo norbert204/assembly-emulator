@@ -53,17 +53,17 @@ int main(int argc, char *argv[])
     printf("File to process: %s", argv[argc - 1]);
 
     Init();
-    int count = 1;
-    while(Run)
-    {
-          SaveState();
-          InstructionFetch();
-          printf("%d --- %s\n", count, Mnemonic);
-          OperandFetch();
-          Execute();
-          WriteBack();
-          count++;      
-    }
-    Fini();
+      int count = 0;
+      while (Run)
+      {
+            if(count) printf("%d --- %s\n", count, Mnemonic);
+            SaveState();
+            InstructionFetch();
+            OperandFetch();
+            Execute();
+            WriteBack();
+            count++;
+      }
+      Fini();
     retrn 0;
 }
