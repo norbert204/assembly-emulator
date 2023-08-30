@@ -176,6 +176,11 @@ class MainWindowViewModel(QObject):
 
                 self.instructions.append(instruction)
 
+        # Temporary fix
+        if self.instructions:
+            self.instructions[0].assembly = "BEGIN"
+            self.instructions[-1].assembly = "END"
+
         self.signal_instructions.emit(self.instructions)
         self.signal_current_instruction.emit(self.current_instruction())
 
