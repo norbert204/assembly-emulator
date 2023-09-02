@@ -100,11 +100,21 @@ class MainWindowViewModel(QObject):
         self._current_instruction = 0
         self.emulator_path = None
 
+
     def current_instruction(self) -> Instruction:
         try:
             return self.instructions[self._current_instruction]
         except IndexError:
             return Instruction()
+
+
+    def change_current_instruction(self, index: int):
+        if index < 0 and index >= len(self.instructions):
+            raise ValueError("Index of instruction must be in bounds")
+
+        self._current_instruction = index
+        self.signal_current_instruction.emit(self.current_instruction())
+
 
     def run_executable(self, path: str):
         if self.emulator_path is None:
@@ -118,6 +128,7 @@ class MainWindowViewModel(QObject):
             raise RuntimeError(f"Error during emulator run: {raw_error_output}")
 
         self.load_run_data()
+
 
     def load_emulator(self, path: str):
         if not os.access(path, os.X_OK):
@@ -134,6 +145,7 @@ class MainWindowViewModel(QObject):
         self.emulator_path = path
 
         self.signal_emulator_path.emit(self.emulator_path)
+
  
     def load_run_data(self):
         with open("/tmp/asemu_output", "r") as f:

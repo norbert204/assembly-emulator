@@ -78,6 +78,7 @@ class MainWindow(QWidget):
                 item.setSelected(True)
 
             self.list_instructions.addItem(item)
+        self.list_instructions.setCurrentItem(self.list_instructions.itemAt(0, 0))
 
 
     def _create_buttons_layout(self) -> QLayout:
@@ -147,6 +148,9 @@ class MainWindow(QWidget):
 
 
     def _create_instructions_layout(self) -> QLayout:
+        def selection_changed():
+            self.view_model.change_current_instruction(self.list_instructions.selectedIndexes()[0].row())
+
         layout = QVBoxLayout()
 
         # Create widgets.
@@ -155,6 +159,7 @@ class MainWindow(QWidget):
         label_title.setText("Instructions")
 
         list_instructions = QListWidget()
+        list_instructions.itemSelectionChanged.connect(selection_changed)
 
         # Add widgets to layout.
 
