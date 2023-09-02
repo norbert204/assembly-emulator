@@ -44,15 +44,27 @@ class MainWindow(QWidget):
 
 
     def _update_current_instruction(self, instruction: Instruction):
-
-        for register, value in instruction.get_registers_packaged().items():
-            label_register = QLabel()
-            label_value = QLabel()
-
-            label_register.setText(register.upper())
-            label_value.setText(f"{value}")
-
-            self.layout_registers.addRow(label_register, label_value)
+        self.label_rip.setText(f"{instruction.rip}")
+        self.label_rax.setText(f"{instruction.rax}")
+        self.label_rbx.setText(f"{instruction.rbx}")
+        self.label_rcx.setText(f"{instruction.rcx}")
+        self.label_rdx.setText(f"{instruction.rdx}")
+        self.label_rdi.setText(f"{instruction.rdi}")
+        self.label_rsi.setText(f"{instruction.rsi}")
+        self.label_rsp.setText(f"{instruction.rsp}")
+        self.label_rbp.setText(f"{instruction.rbp}")
+        self.label_r8.setText(f"{instruction.r8}")
+        self.label_r9.setText(f"{instruction.r9}")
+        self.label_r10.setText(f"{instruction.r10}")
+        self.label_r11.setText(f"{instruction.r11}")
+        self.label_r12.setText(f"{instruction.r12}")
+        self.label_r13.setText(f"{instruction.r13}")
+        self.label_r14.setText(f"{instruction.r14}")
+        self.label_r15.setText(f"{instruction.r15}")
+        self.label_cf.setText(f"{instruction.cf}")
+        self.label_of.setText(f"{instruction.of}")
+        self.label_sf.setText(f"{instruction.sf}")
+        self.label_zf.setText(f"{instruction.zf}")
 
 
     def _update_instructions(self, instructions: list[Instruction]):
@@ -160,23 +172,148 @@ class MainWindow(QWidget):
         layout = QFormLayout()
         layout.setHorizontalSpacing(20)
 
+        # Create widgets.
+
         label_title = QLabel()
         label_title.setText("Registers")
 
+        label_rip = QLabel()
+        label_rip.setText("RIP")
+        label_rip_value = QLabel()
+
+        label_rax = QLabel()
+        label_rax.setText("RAX")
+        label_rax_value = QLabel()
+
+        label_rbx = QLabel()
+        label_rbx.setText("RBX")
+        label_rbx_value = QLabel()
+
+        label_rcx = QLabel()
+        label_rcx.setText("RCX")
+        label_rcx_value = QLabel()
+
+        label_rdx = QLabel()
+        label_rdx.setText("RDX")
+        label_rdx_value = QLabel()
+
+        label_rdi = QLabel()
+        label_rdi.setText("RDI")
+        label_rdi_value = QLabel()
+
+        label_rsi = QLabel()
+        label_rsi.setText("RSI")
+        label_rsi_value = QLabel()
+
+        label_rsp = QLabel()
+        label_rsp.setText("RSP")
+        label_rsp_value = QLabel()
+
+        label_rbp = QLabel()
+        label_rbp.setText("RBP")
+        label_rbp_value = QLabel()
+
+        label_r8 = QLabel()
+        label_r8.setText("R8")
+        label_r8_value = QLabel()
+
+        label_r9 = QLabel()
+        label_r9.setText("R9")
+        label_r9_value = QLabel()
+
+        label_r10 = QLabel()
+        label_r10.setText("R10")
+        label_r10_value = QLabel()
+
+        label_r11 = QLabel()
+        label_r11.setText("R11")
+        label_r11_value = QLabel()
+
+        label_r12 = QLabel()
+        label_r12.setText("R12")
+        label_r12_value = QLabel()
+
+        label_r13 = QLabel()
+        label_r13.setText("R13")
+        label_r13_value = QLabel()
+
+        label_r14 = QLabel()
+        label_r14.setText("R14")
+        label_r14_value = QLabel()
+
+        label_r15 = QLabel()
+        label_r15.setText("R15")
+        label_r15_value = QLabel()
+
+        label_cf = QLabel()
+        label_cf.setText("CF")
+        label_cf_value = QLabel()
+
+        label_of = QLabel()
+        label_of.setText("OF")
+        label_of_value = QLabel()
+
+        label_sf = QLabel()
+        label_sf.setText("SF")
+        label_sf_value = QLabel()
+
+        label_zf = QLabel()
+        label_zf.setText("ZF")
+        label_zf_value = QLabel()
+
+        # Add widgets to layout.
+
         layout.addWidget(label_title)
 
-        current_instruction = self.view_model.current_instruction()
+        layout.addRow(label_rip, label_rip_value)
 
-        for register, value in current_instruction.get_registers_packaged().items():
-            label_register = QLabel()
-            label_value = QLabel()
+        layout.addRow(label_rax, label_rax_value)
+        layout.addRow(label_rbx, label_rbx_value)
+        layout.addRow(label_rcx, label_rcx_value)
+        layout.addRow(label_rdx, label_rdx_value)
 
-            label_register.setText(register.upper())
-            label_value.setText(f"{value}")
+        layout.addRow(label_rdi, label_rdi_value)
+        layout.addRow(label_rsi, label_rsi_value)
+        layout.addRow(label_rsp, label_rsp_value)
+        layout.addRow(label_rbp, label_rbp_value)
 
-            layout.addRow(label_register, label_value)
+        layout.addRow(label_r8, label_r8_value)
+        layout.addRow(label_r9, label_r9_value)
+        layout.addRow(label_r10, label_r10_value)
+        layout.addRow(label_r11, label_r11_value)
+        layout.addRow(label_r12, label_r12_value)
+        layout.addRow(label_r13, label_r13_value)
+        layout.addRow(label_r14, label_r14_value)
+        layout.addRow(label_r15, label_r15_value)
 
-        self.layout_registers = layout
+        layout.addRow(label_cf, label_cf_value)
+        layout.addRow(label_of, label_of_value)
+        layout.addRow(label_sf, label_sf_value)
+        layout.addRow(label_zf, label_zf_value)
+
+        # Register widgets as a instance variables.
+
+        self.label_rip = label_rip_value
+        self.label_rax = label_rax_value
+        self.label_rbx = label_rbx_value
+        self.label_rcx = label_rcx_value
+        self.label_rdx = label_rdx_value
+        self.label_rdi = label_rdi_value
+        self.label_rsi = label_rsi_value
+        self.label_rsp = label_rsp_value
+        self.label_rbp = label_rbp_value
+        self.label_r8 = label_r8_value
+        self.label_r9 = label_r9_value
+        self.label_r10 = label_r10_value
+        self.label_r11 = label_r11_value
+        self.label_r12 = label_r12_value
+        self.label_r13 = label_r13_value
+        self.label_r14 = label_r14_value
+        self.label_r15 = label_r15_value
+        self.label_cf = label_cf_value
+        self.label_of = label_of_value
+        self.label_sf = label_sf_value
+        self.label_zf = label_zf_value
 
         return layout
 
