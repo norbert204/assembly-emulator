@@ -6,16 +6,18 @@ from PyQt5.QtWidgets import *
 from viewmodel import Instruction, MainWindowViewModel
 
 
-class MainWindow(QWidget):
+class MainWindow(QMainWindow):
     def __init__(self, view_model: MainWindowViewModel):
         super(MainWindow, self).__init__()
 
         self.view_model = view_model
 
-        self.setGeometry(100, 100, 1280, 800)
+        self.resize(1280, 800)
         self.setMinimumSize(1280, 800)
         self.setWindowTitle(f"Assembly Emulator GUI")
         self.setStyleSheet(MainWindow.load_css())
+
+        central_widget = QWidget()
 
         main_layout = QGridLayout()
         main_layout.setColumnStretch(0, 1)
@@ -23,14 +25,18 @@ class MainWindow(QWidget):
         main_layout.setColumnStretch(2, 1)
         main_layout.setHorizontalSpacing(20)
 
-        self.setLayout(main_layout)
+        central_widget.setLayout(main_layout)
+
+        self.setCentralWidget(central_widget)
 
         # Add the layouts to the main window.
 
-        main_layout.addLayout(self._create_buttons_layout(), 0, 0, 1, 3)
+        main_layout.addLayout(self._create_toolbar_layout(), 0, 0, 1, 3)
         main_layout.addLayout(self._create_instructions_layout(), 1, 0, 1, 1)
         main_layout.addLayout(self._create_stack_layout(), 1, 1, 1, 1)
         main_layout.addLayout(self._create_register_layout(), 1, 2, 1, 1)
+
+        self.setMenuBar(self._create_menu_bar())
 
         # Connect to signals so that the UI updates.
 
@@ -81,27 +87,8 @@ class MainWindow(QWidget):
         self.list_instructions.setCurrentItem(self.list_instructions.itemAt(0, 0))
 
 
-    def _create_buttons_layout(self) -> QLayout:
-        def button_run_clicked():
-            dialog = QFileDialog()
-            dialog.setFileMode(QFileDialog.AnyFile)
-
-            dialog.exec()
-
-            file = dialog.selectedFiles()[0]
-
-            try:
-                self.view_model.run_executable(file)
-            except ValueError as err:
-                message_box = QMessageBox()
-                message_box.setText("Executable running error!")
-                message_box.setInformativeText(f"{err}")
-
-                message_box.setIcon(QMessageBox.Critical)
-
-                message_box.exec()
-
-        def button_load_emulator_clicked():
+    def _create_menu_bar(self) -> QMenuBar:
+        def load_emulator():
             dialog = QFileDialog()
             dialog.setFileMode(QFileDialog.AnyFile)
 
@@ -120,29 +107,99 @@ class MainWindow(QWidget):
 
                 message_box.exec()
 
+        def run_from_executable():
+            dialog = QFileDialog()
+            dialog.setFileMode(QFileDialog.AnyFile)
+
+            dialog.exec()
+
+            file = dialog.selectedFiles()[0]
+
+            try:
+                self.view_model.run_executable(file)
+            except ValueError as err:
+                message_box = QMessageBox()
+                message_box.setText("Executable running error!")
+                message_box.setInformativeText(f"{err}")
+
+                message_box.setIcon(QMessageBox.Critical)
+
+                message_box.exec()
+
+        def run_from_output():
+            dialog = QFileDialog()
+            dialog.setFileMode(QFileDialog.AnyFile)
+
+            dialog.exec()
+
+            file = dialog.selectedFiles()[0]
+
+            try:
+                self.view_model.load_run_data(file)
+            except Exception as err:
+                message_box = QMessageBox()
+                message_box.setText("Executable running error!")
+                message_box.setInformativeText(f"{err}")
+
+                message_box.setIcon(QMessageBox.Critical)
+
+                message_box.exec()
+
+        menu_bar = QMenuBar(self)
+
+        # File menu
+
+        menu_file = menu_bar.addMenu("&File")
+
+        action_load = QAction("Load emulator", self)
+        action_load.triggered.connect(load_emulator)
+
+        action_exit = QAction("&Exit", self)
+        action_exit.triggered.connect(QApplication.exit)
+
+        # Run menu
+
+        menu_run = menu_bar.addMenu("&Run")
+
+        action_executable = QAction("From executable", self)
+        action_executable.triggered.connect(run_from_executable)
+
+        action_output = QAction("From output file", self)
+        action_output.triggered.connect(run_from_output)
+
+        # Register submenus
+
+        menu_file.addAction(action_load)
+        menu_file.addSeparator()
+        menu_file.addAction(action_exit)
+
+        menu_run.addAction(action_executable)
+        menu_run.addAction(action_output)
+
+        return menu_bar
+
+
+    def _create_toolbar_layout(self) -> QLayout:
         layout = QHBoxLayout()
+        layout.setSpacing(10)
 
         # Create widgets.
 
-        button_run = QPushButton()
-        button_run.setText("Run Executable")
-        button_run.clicked.connect(button_run_clicked)
-
-        button_load_emulator= QPushButton()
-        button_load_emulator.setText("Load emulator path")
-        button_load_emulator.clicked.connect(button_load_emulator_clicked)
-
         label_path = QLabel()
+        label_path.setText("Emulator path:")
+        label_path_value = QLabel()
+
+        spacer = QSpacerItem(10, 0, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         # Add widgets to layout.
 
-        layout.addWidget(button_run)
-        layout.addWidget(button_load_emulator)
         layout.addWidget(label_path)
+        layout.addWidget(label_path_value)
+        layout.addSpacerItem(spacer)
 
         # Register widgets as a instance variables.
 
-        self.label_emulator_path = label_path
+        self.label_emulator_path = label_path_value
 
         return layout
 
