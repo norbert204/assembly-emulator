@@ -141,6 +141,10 @@ void Execute(){
     if(!strcmp(Mnemonic, "shl")) shl();
     if(!strcmp(Mnemonic, "shr")) shr();
 
+    /* --- CARRY INSTRUCTIONS --- */
+    
+    if (!strcmp(Mnemonic, "adc")) adc();
+
 }
 
 /* --- JUMP INSTRUCTIONS ---*/
@@ -295,4 +299,23 @@ void shr(){
     if (ALUin2 == 0) {}
     else{ CF = bitState; }
     if (ALUin2 == 1) { OF = (ALUin1 >> 63) & 1; }
+}
+
+/* --- CARRY INSTRUCTIONS --- */
+
+void adc(){
+    long long int temp1 = ALUout;
+    long long int temp2 = ALUin1;
+    long long int result = ALUout + ALUin1 + CF;
+    if ((result >> 63) & 1) { SF = 1; }
+    else { SF = 0; }
+    if (result == 0) { ZF = 1; }
+    else { ZF = 0; }
+    temp2 += CF;  // Adding the carry for further EFLAGS inspection
+    if (1 & ((temp1 & temp2 & ~result) | (~temp1 & ~temp2 & result) >> 63)) { CF = 1; }
+    else { CF = 0; }
+    if ((temp1 < 0 && temp2 > INT_MAX - temp1) ||
+        (temp1 > 0 && temp2 < INT_MAX - temp1)) { OF = 1; }
+    else { OF = 0; }
+    ALUout = result;
 }

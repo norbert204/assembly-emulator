@@ -98,6 +98,7 @@ void Execute();
 /* JUMP INSTRUCTIONS : */ void ja(), jae(), jb(), jbe(), jc(), je(), jg(), jge(), jl(), jle(), jmp(), jnc(), jne(), jnz(), jz();
 /* SET INSTRUCTIONS : */ void seta(), setae(), setb(), setbe(), setc(), sete(), setg(), setge(), setl(), setle(), setnc(), setne(), setnz(), setz();
 /* SHIFT AND ROTATE INSTRUCTIONS : */ void rol(), ror(), sal(), sar(), shl(), shr();
+/* CARRY INSTRUCIONS : */ void adc();
 
 void ProcadureForAllMnemoninc();
 // Based on the Mnemonic do the proper action (using ALUin1, ALUin2 and others)
