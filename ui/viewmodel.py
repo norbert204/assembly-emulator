@@ -127,7 +127,7 @@ class MainWindowViewModel(QObject):
             raw_error_output = output_error.decode().strip()
             raise RuntimeError(f"Error during emulator run: {raw_error_output}")
 
-        self.load_run_data("/tmp/asemu_output")
+        self.load_data_from_output("/tmp/asemu_output")
 
 
     def load_emulator(self, path: str):
@@ -147,7 +147,7 @@ class MainWindowViewModel(QObject):
         self.signal_emulator_path.emit(self.emulator_path)
 
  
-    def load_run_data(self, path: str):
+    def load_data_from_output(self, path: str):
         with open(path, "r") as f:
             self.instructions = list()
             for line in f:
