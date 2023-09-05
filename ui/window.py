@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
             label_decimal, label_hex = self.labels_register[k]
 
             label_decimal.setText(f"{v}")
-            label_hex.setText("{:x}".format(v))
+            label_hex.setText(f"{v:#x}")
 
 
     def _update_instructions(self, instructions: list[Instruction]):
