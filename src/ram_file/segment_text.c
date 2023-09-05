@@ -140,7 +140,14 @@ void simplify_operand(char operand[], size_t size)
     memset(address, '\0', size - 1);
     sscanf(operand, "%*[^ ] PTR %s", address);
 
-    sprintf(operand, "%c%s", type, address);
+    if (address[0] == '[')
+    {
+        sprintf(operand, "%c%s", type, address);
+    }
+    else
+    {
+        sprintf(operand, "%c[%s]", type, address);
+    }
 }
 
 void simplify_assembly(char assembly[], size_t size)
