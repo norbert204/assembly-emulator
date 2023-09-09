@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <limits.h>
 
 long long int ReadMem(long long int address, int size)
 {
@@ -249,6 +250,11 @@ void setnz(){
     if (ZF == 0) ALUout = 1;
         else ALUout = 0;
 }
+void seto(){
+    if (OF = 1) ALUout = 1;
+        else ALUout = 0;
+    
+}
 void setz(){
     if (ZF == 1) ALUout = 1;
         else ALUout = 0;
@@ -265,6 +271,29 @@ void ror(){
     ALUout = (ALUin1 >> ALUin2) | (ALUin1 << (64 - ALUin2));
     CF = ALUin1 >> (ALUin2 - 1) & 1;
     if (ALUin2 == 1) { OF = ((ALUout >> 63) & 1) ^ ((ALUout >> 62) & 1); }
+}
+void rcl(){
+    int temp = 0;
+    for (long long int i = 0; i < ALUin2; i++)
+    {
+        temp = CF;
+        CF = (ALUin1 >> 63) & 1;
+        ALUout = ((ALUin1 << 1) | (ALUin1 >> 63)) | temp;
+        ALUin1 = ALUout;
+    }
+    OF = CF ^ ((ALUout >> 63) & 1);
+}
+void rcr(){
+    int temp = 0;
+    for (long long int i = 0; i < ALUin2; i++)
+    {
+        temp = CF;
+        CF = (ALUin1 >> 1) & 1;
+        if (temp = 1) ALUout = (-1)*((ALUin1 >> 1) | (ALUin2 << 63));
+            else ALUout = ((ALUin1 >> 1) | (ALUin2 << 63));
+        ALUin1 = ALUout;
+    }
+    OF = ((ALUout >> 63) & 1) ^ ((ALUout >> 62) & 1);
 }
 void sal(){
     int bitState;
