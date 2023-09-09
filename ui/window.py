@@ -229,6 +229,9 @@ class MainWindow(QMainWindow):
 
         labels = dict()
 
+        spacer_after = [ "RIP", "RDX", "RBP", "R15" ]
+        small_spacer = QSpacerItem(0, 20, QSizePolicy.Minimum, QSizePolicy.Minimum)
+
         for k in self.view_model.current_instruction().get_registers_packaged().keys():
             row = QHBoxLayout()
             label_title = QLabel()
@@ -245,6 +248,9 @@ class MainWindow(QMainWindow):
 
             layout.addLayout(row)
             labels[k] = (label_value, label_value_hex)
+
+            if k.upper() in spacer_after:
+                layout.addSpacerItem(small_spacer)
 
         self.labels_register = labels
 
