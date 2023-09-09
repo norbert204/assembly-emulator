@@ -56,6 +56,12 @@ class MainWindow(QMainWindow):
             label_decimal.setText(f"{v}")
             label_hex.setText(f"{v:#x}")
 
+        self.list_stack.clear()
+        for i in instruction.stack_bytes_reverse:
+            item = QListWidgetItem()
+            item.setText(f"{i}")
+            self.list_stack.addItem(item)
+
 
     def _update_instructions(self, instructions: list[Instruction]):
         self.list_instructions.clear()
