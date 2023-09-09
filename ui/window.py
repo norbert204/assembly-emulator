@@ -235,7 +235,9 @@ class MainWindow(QMainWindow):
             label_title.setText(k.upper())
 
             label_value = QLabel()
+            label_value.setAlignment(Qt.AlignRight)
             label_value_hex = QLabel()
+            label_value_hex.setAlignment(Qt.AlignRight)
 
             row.addWidget(label_title)
             row.addWidget(label_value)
