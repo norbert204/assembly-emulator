@@ -88,7 +88,7 @@ class MainWindow(QMainWindow):
 
             try:
                 self.view_model.load_emulator(file)
-            except ValueError as err:
+            except Exception as err:
                 message_box = QMessageBox()
                 message_box.setText("Emulator loading error!")
                 message_box.setInformativeText(f"{err}")
@@ -107,7 +107,7 @@ class MainWindow(QMainWindow):
 
             try:
                 self.view_model.run_executable(file)
-            except ValueError as err:
+            except Exception as err:
                 message_box = QMessageBox()
                 message_box.setText("Executable running error!")
                 message_box.setInformativeText(f"{err}")
