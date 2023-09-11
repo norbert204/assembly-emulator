@@ -22,11 +22,19 @@ void print_credits()
 void print_help()
 {
     puts("Usage:");
-    puts("\tasemu [parameters] <executable>");
+    puts("\tasemu [parameters] <file>");
     puts("");
     puts("Optional parameters");
     puts("\t-h\tPrint this help text");
     puts("\t-c\tPrint credits");
+    puts("\t-e\tThe provided file is a precompiled executable");
+    puts("\t-r\tThe provided file is a premade ram file");
+}
+
+void print_file_specifier_error()
+{
+    fprintf(stderr, "Provide only one file type specifying parameter!\n");
+    exit(1);
 }
 
 void emulation()
@@ -58,6 +66,8 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    int run_state = 0;
+
     // Handle the optional parameters.
     for (int i = 0; i < argc; i++)
     {
@@ -72,21 +82,54 @@ int main(int argc, char *argv[])
             print_help();
             exit(0);
         }
+
+        if (strstr(argv[i], "-e"))
+        {
+            if (run_state != 0)
+            {
+                print_file_specifier_error();
+            }
+
+            run_state = 1;
+            continue;
+        }
+
+        if (strstr(argv[i], "-r"))
+        {
+            if (run_state != 0)
+            {
+                print_file_specifier_error();
+            }
+
+            run_state = 2;
+            continue;
+        }
     }
 
     char *file = argv[argc - 1];
 
-    // First we need to compile the given code.
-    compile_code(file, OUTPUT_EXECUTABLE);
+    if (run_state == 0)
+    {
+        compile_code(file, OUTPUT_EXECUTABLE);
+        decompile_executable(OUTPUT_EXECUTABLE, OUTPUT_DUMP_FILE);
+        create_ram_file(OUTPUT_DUMP_FILE, OUTPUT_RAM_FILE);
+        emulation();
+    }
+    else if (run_state == 1)
+    {
+        decompile_executable(file, OUTPUT_DUMP_FILE);
+        create_ram_file(OUTPUT_DUMP_FILE, OUTPUT_RAM_FILE);
+        emulation();
+    }
+    else if (run_state == 2)
+    {
+        // TODO: Make the emulator have an input file parameter.
+        char command[256];
+        sprintf(command, "cp %s /tmp/asemu_ram", file);
+        system(command);
 
-    // First we need to decompile the executable.
-    decompile_executable(OUTPUT_EXECUTABLE, OUTPUT_DUMP_FILE);
-
-    // Then we create the RAM file.
-    create_ram_file(OUTPUT_DUMP_FILE, OUTPUT_RAM_FILE);
-
-    // Then run the emulator.
-    emulation();
+        emulation();
+    }
 
     return 0;
 }
