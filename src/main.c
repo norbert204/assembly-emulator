@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "ram_file/compile.h"
 #include "ram_file/decompile.h"
 #include "emulator/x86_64.h"
 #include "ram_file/ram_file.h"
 
 #define OUTPUT_DUMP_FILE "/tmp/asemu_dump"
 #define OUTPUT_RAM_FILE "/tmp/asemu_ram"
+#define OUTPUT_EXECUTABLE "/tmp/asemu_executable"
 
 void print_credits()
 {
@@ -74,8 +76,11 @@ int main(int argc, char *argv[])
 
     char *file = argv[argc - 1];
 
+    // First we need to compile the given code.
+    compile_code(file, OUTPUT_EXECUTABLE);
+
     // First we need to decompile the executable.
-    decompile_executable(file, OUTPUT_DUMP_FILE);
+    decompile_executable(OUTPUT_EXECUTABLE, OUTPUT_DUMP_FILE);
 
     // Then we create the RAM file.
     create_ram_file(OUTPUT_DUMP_FILE, OUTPUT_RAM_FILE);
