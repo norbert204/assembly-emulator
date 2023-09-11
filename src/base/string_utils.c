@@ -13,6 +13,16 @@ bool str_starts_with(const char *str, const char *sub)
         : strncmp(str, sub, len_sub) == 0;
 }
 
+bool str_ends_with(const char *str, const char *sub)
+{
+    size_t len_str = strlen(str);
+    size_t len_sub = strlen(sub);
+
+    return len_str < len_sub
+        ? 0
+        : strncmp(str + len_str - len_sub, sub, len_sub) == 0;
+}
+
 void str_trim(char *str, const size_t size)
 {
     int start;

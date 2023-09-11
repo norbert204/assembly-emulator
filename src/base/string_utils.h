@@ -6,6 +6,9 @@
 /* Checks if the string starts with the other given string. */
 bool str_starts_with(const char *str, const char *sub);
 
+/* Checks if the string ends with the other given string. */
+bool str_ends_with(const char *str, const char *sub);
+
 /* Removes whitespace characters from the front and the back of the given string.
    Important! The size parameter represents the size of the array! */
 void str_trim(char *str, const size_t size);
