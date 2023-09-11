@@ -1,8 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "ram_file/decompile.h"
 #include "emulator/x86_64.h"
 #include "ram_file/ram_file.h"
+
+#define OUTPUT_DUMP_FILE "/tmp/asemu_dump"
+#define OUTPUT_RAM_FILE "/tmp/asemu_ram"
 
 void print_credits()
 {
@@ -68,8 +72,13 @@ int main(int argc, char *argv[])
         }
     }
 
-    // First we create the RAM file.
-    create_ram_file(argv[argc - 1]);
+    char *file = argv[argc - 1];
+
+    // First we need to decompile the executable.
+    decompile_executable(file, OUTPUT_DUMP_FILE);
+
+    // Then we create the RAM file.
+    create_ram_file(OUTPUT_DUMP_FILE, OUTPUT_RAM_FILE);
 
     // Then run the emulator.
     emulation();

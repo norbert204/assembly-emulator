@@ -6,12 +6,9 @@
 #include <unistd.h>
 #include "../base/types.h"
 #include "../base/string_utils.h"
-#include "decompile.h"
 #include "segment_data.h"
 #include "segment_text.h"
 
-#define OUTPUT_FILE_NAME "/tmp/asemu_ram"
-#define OUTPUT_DUMP_FILE "/tmp/asemu_dump"
 #define LINE_SIZE 255
 
 #define MAIN_FUNCTION_NAME " <main>:"
@@ -72,10 +69,10 @@ int get_main_address(FILE *in)
     return address;
 }
 
-void cleanup_dump(const char *file)
+void create_ram_file(const char *input_file, const char *output_file)
 {
-    FILE *in = fopen(file, "r");
-    FILE *out = fopen(OUTPUT_FILE_NAME, "w");
+    FILE *in = fopen(input_file, "r");
+    FILE *out = fopen(output_file, "w");
 
     int main_address = get_main_address(in);
     fprintf(out, "main: %x\n", main_address);
@@ -104,10 +101,4 @@ void cleanup_dump(const char *file)
 
     fclose(in);
     fclose(out);
-}
-
-void create_ram_file(const char *file)
-{
-    decompile_executable(file, OUTPUT_DUMP_FILE);
-    cleanup_dump(OUTPUT_DUMP_FILE);
 }
