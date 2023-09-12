@@ -8,6 +8,7 @@
 const char *prefixes[] = {
     "cs",
     "ss",
+    "ds",
     "data16",
     "addr32",
     "bnd", 
