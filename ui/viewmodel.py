@@ -1,8 +1,23 @@
 import os
 import sys
 import subprocess
+from enum import Enum
 
 from PyQt5.QtCore import QObject, pyqtSignal
+
+
+class EmulatorMode(Enum):
+    CODE = 1,
+    EXECUTABLE = 2,
+    RAM_FILE = 3
+
+
+MODE_PARAMETERS = {
+    EmulatorMode.CODE: "",
+    EmulatorMode.EXECUTABLE: "-e",
+    EmulatorMode.RAM_FILE: "-r",
+}
+
 
 class Instruction():
     def __init__(
@@ -108,40 +123,26 @@ class MainWindowViewModel(QObject):
             return Instruction()
 
 
+    def run_emulator(self, path: str, mode: EmulatorMode):
+        if self.emulator_path is None:
+            raise ValueError("Path to emulator is not specified.")
+
+        emulator_process = subprocess.Popen([self.emulator_path, MODE_PARAMETERS[mode], path], stderr=subprocess.PIPE)
+        _, output_error = emulator_process.communicate()
+
+        if emulator_process.returncode != 0:
+            raw_error_output = output_error.decode().strip()
+            raise RuntimeError(f"Error during emulator run: {raw_error_output}")
+
+        self.load_data_from_output("/tmp/asemu_output")
+
+
     def change_current_instruction(self, index: int):
         if index < 0 and index >= len(self.instructions):
             raise ValueError("Index of instruction must be in bounds")
 
         self._current_instruction = index
         self.signal_current_instruction.emit(self.current_instruction())
-
-
-    def run_code(self, path: str):
-        if self.emulator_path is None:
-            raise ValueError("Path to emulator is not specified.")
-
-        process = subprocess.Popen([self.emulator_path, path], stdout=subprocess.PIPE)
-        _, output_error = process.communicate(timeout=120)
-
-        if process.returncode != 0:
-            raw_error_output = output_error.decode().strip()
-            raise RuntimeError(f"Error during emulator run: {raw_error_output}")
-
-        self.load_data_from_output("/tmp/asemu_output")
-
-
-    def run_executable(self, path: str):
-        if self.emulator_path is None:
-            raise ValueError("Path to emulator is not specified.")
-
-        process = subprocess.Popen([self.emulator_path, "-e", path], stdout=subprocess.PIPE)
-        _, output_error = process.communicate(timeout=120)
-
-        if process.returncode != 0:
-            raw_error_output = output_error.decode().strip()
-            raise RuntimeError(f"Error during emulator run: {raw_error_output}")
-
-        self.load_data_from_output("/tmp/asemu_output")
 
 
     def load_emulator(self, path: str):

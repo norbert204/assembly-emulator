@@ -3,7 +3,7 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, pyqtSlot
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from viewmodel import Instruction, MainWindowViewModel
+from viewmodel import Instruction, MainWindowViewModel, EmulatorMode
 
 
 class MainWindow(QMainWindow):
@@ -106,7 +106,7 @@ class MainWindow(QMainWindow):
             file = dialog.selectedFiles()[0]
 
             try:
-                self.view_model.run_code(file)
+                self.view_model.run_emulator(file, EmulatorMode.CODE)
             except Exception as err:
                 message_box = QMessageBox()
                 message_box.setText("Code running error!")
@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
             file = dialog.selectedFiles()[0]
 
             try:
-                self.view_model.run_executable(file)
+                self.view_model.run_emulator(file, EmulatorMode.EXECUTABLE)
             except Exception as err:
                 message_box = QMessageBox()
                 message_box.setText("Executable running error!")
