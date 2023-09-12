@@ -15,7 +15,8 @@ long long int ReadMem(long long int address, int size)
                 if (!current->next)
                     break;
                 current = current->next;
-                if (current->addr != address + (i + 1)) // Non-following address problem
+                if (size == 1);                                                                     ////////////////////////////////////////////
+                else if (current->addr != address + (i + 1)) // Non-following address problem
                 {
                     Run = 0; // Global error variable; stop running
                     fprintf(stderr, "Memory read error! Not following address!\n");
@@ -218,37 +219,60 @@ void OperandFetch()
 
     if (!strcmp(Mnemonic, "lea"))
     {
-        ResolveAddress(&ALUin2);
+        ResolveAddress(&ALUin2, Operand1);
         return;
     }
 
     if (!FetchRegister(Operand1, &ALUin1, &OpMaskDest))
     {
         long long int Address;
-        if (Operand1[0] == 'Q')
+        if (!strcmp(Mnemonic, "mov"))
         {
-            ResolveAddress(&Address);
+            if (Operand1[0] == 'Q')
+            {
+                WriteBackSize = 8;
+                OpMaskDest = Mask64;
+            }
+            if (Operand1[0] == 'D')
+            {
+                WriteBackSize = 4;
+                OpMaskDest = Mask32;
+            }
+            if (Operand1[0] == 'W')
+            {
+                WriteBackSize = 2;
+                OpMaskDest = Mask16;
+            }
+            if (Operand1[0] == 'B')
+            {
+                WriteBackSize = 1;
+                OpMaskDest = Mask8h;
+            }
+        }
+        else if (Operand1[0] == 'Q')
+        {
+            ResolveAddress(&Address, Operand1);
             ALUin1 = ReadMem(Address, 8);
             WriteBackSize = 8;
             OpMaskDest = Mask64;
         }
         else if (Operand1[0] == 'D')
         {
-            ResolveAddress(&Address);
+            ResolveAddress(&Address, Operand1);
             ALUin1 = ReadMem(Address, 4);
             WriteBackSize = 4;
             OpMaskDest = Mask32;
         }
         else if (Operand1[0] == 'W')
         {
-            ResolveAddress(&Address);
+            ResolveAddress(&Address, Operand1);
             ALUin1 = ReadMem(Address, 2);
             WriteBackSize = 2;
             OpMaskDest = Mask16;
         }
         else if (Operand1[0] == 'B')
         {
-            ResolveAddress(&Address);
+            ResolveAddress(&Address, Operand1);
             ALUin1 = ReadMem(Address, 1);
             WriteBackSize = 1;
             OpMaskDest = Mask8l;
@@ -267,25 +291,26 @@ void OperandFetch()
         long long int Address;
         if (Operand2[0] == 'Q')
         {
-            ResolveAddress(&Address);
+            ResolveAddress(&Address, Operand2);
             ALUin2 = ReadMem(Address, 8);
             OpMaskSource = Mask64;
         }
         else if (Operand2[0] == 'D')
         {
-            ResolveAddress(&Address);
+            ResolveAddress(&Address, Operand2);
             ALUin2 = ReadMem(Address, 4);
             OpMaskSource = Mask32;
         }
         else if (Operand2[0] == 'W')
         {
-            ResolveAddress(&Address);
+            
+            ResolveAddress(&Address, Operand2);
             ALUin2 = ReadMem(Address, 2);
             OpMaskSource = Mask16;
         }
         else if (Operand2[0] == 'B')
         {
-            ResolveAddress(&Address);
+            ResolveAddress(&Address, Operand2);
             ALUin2 = ReadMem(Address, 1);
             OpMaskSource = Mask8l;
         }
@@ -469,10 +494,23 @@ void assembly_idiv()
         RAX = quotient64_signed(ALUin1, ALUin2);
         RDX = reminder64_signed(ALUin1, ALUin2);
     }
-    else
+    
+        else if (OpMaskSource == Mask32)
     {
-        printf("\tImplemented later...\n"); // 32-bit, 16-bit and 8-bit cases
+        RAX = (ALUin1/ALUin2) & Mask32;
+        RDX = (ALUin1%ALUin2) & Mask32;
     }
+    else if (OpMaskSource == Mask16)
+    {
+        RAX = (ALUin1/ALUin2) & Mask16;
+        RDX = (ALUin1%ALUin2) & Mask16;
+    }
+    else if (OpMaskSource == Mask8l)
+    {
+        RAX = (ALUin1/ALUin2) & Mask8l;
+        RDX = (ALUin1%ALUin2) & Mask8l;
+    }
+    
 }
 
 // Quotient of unsigned division (128-bit / 64-bit = 64-bit)
@@ -509,9 +547,20 @@ void assembly_div()
         RAX = quotient64_unsigned(ALUin1, ALUin2);
         RDX = reminder64_unsigned(ALUin1, ALUin2);
     }
-    else
+    else if (OpMaskSource == Mask32)
     {
-        printf("\tImplemented later...\n"); // 32-bit, 16-bit and 8-bit cases
+        RAX = (ALUin1/ALUin2) & Mask32;
+        RDX = (ALUin1%ALUin2) & Mask32;
+    }
+    else if (OpMaskSource == Mask16)
+    {
+        RAX = (ALUin1/ALUin2) & Mask16;
+        RDX = (ALUin1%ALUin2) & Mask16;
+    }
+    else if (OpMaskSource == Mask8l)
+    {
+        RAX = (ALUin1/ALUin2) & Mask8l;
+        RDX = (ALUin1%ALUin2) & Mask8l;
     }
 }
 
@@ -1099,6 +1148,11 @@ void Execute()
     }
     if (!strcmp(Mnemonic, "cdq"))
     {
+        cdq();
+        return;
+    }
+    if (!strcmp(Mnemonic, "cdqe"))
+    {
         cdqe();
         return;
     }
@@ -1426,8 +1480,8 @@ void Execute()
         shr();
         return;
     }
-    printf("Error! Instruction not implemented (%s)", Mnemonic);
-    Run = 0;
+    printf("Error! Instruction not implemented (%s)\n", Mnemonic);
+    //Run = 0;
 }
 void Fini()
 {
@@ -1969,7 +2023,7 @@ int FetchLiteral(char *Expression, long long int *Destination)
 {
     if (Expression[1] == 'x')
     {
-        *Destination = strtol(strchr(Operand2, 120) + 1, NULL, 16);
+        *Destination = strtol(strrchr(Operand2, 120) + 1, NULL, 16);
         return 1;
     }
     else if (strtol(Expression, NULL, 16))
@@ -1979,11 +2033,12 @@ int FetchLiteral(char *Expression, long long int *Destination)
     }
     return 0;
 }
-int ResolveAddress(long long int *Destination)
+int ResolveAddress(long long int *Destination, char* Operand)
 {
+    //printf("%s\n", Operand);
     char Exp[32];
-    if (!sscanf(Operand2, "%*[^[][%31[^]]", Exp))
-        sscanf(Operand2, "%*c%31[^]]", Exp); // lea miatt, mert ott a kifejezés egyből [- el kezdődik
+    if (!sscanf(Operand, "%*[^[][%31[^]]", Exp))
+        sscanf(Operand, "%*c%31[^]]", Exp); // lea miatt, mert ott a kifejezés egyből [- el kezdődik
     int Mult;
     long long int Mask;
     char Op1[32], Op2[32], Literal[32];
@@ -2042,7 +2097,7 @@ int ResolveAddress(long long int *Destination)
         Reg1 &= Mask;
         FetchLiteral(Literal, &Value);
         *Destination = Reg1 * Mult + Value;
-        // printf("%lld, %lld, %d\n", Reg1, Value, Mult);
+        //printf("%lld, %lld, %d\n", Reg1, Value, Mult);
         return 13;
     }
     if (Pointer2 && Pointer4 && Pointer4 > Pointer2) // [<register> [ "*1" | "*2" | "*4" | "*8" ]  "-" <literal> ]

@@ -131,7 +131,7 @@ int CheckZF(int Value, long long int Mask);
 void PrintList(char* s);
 int FetchRegister(char* Operand, long long int* Destination, long long int* Mask);
 int FetchLiteral(char* Expression, long long int* Destination);
-int ResolveAddress(long long int *Destination);
+int ResolveAddress(long long int *Destination, char* Operand);
 
 #define X86_64_H
 #endif
