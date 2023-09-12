@@ -1,6 +1,6 @@
 build-run:
-	gcc -o asemu -DDEBUG -Wall src/*c
+	gcc -Wall -DDEBUG src/*.c src/base/*.c src/emulator/*.c src/ram_file/*.c -o asemu
 	./asemu
 
 build:
-	gcc -Wall src/*c -o asemu
+	gcc -Wall -DDEBUG src/*.c src/base/*.c src/emulator/*.c src/ram_file/*.c -o asemu
