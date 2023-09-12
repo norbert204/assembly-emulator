@@ -116,11 +116,25 @@ class MainWindowViewModel(QObject):
         self.signal_current_instruction.emit(self.current_instruction())
 
 
-    def run_executable(self, path: str):
+    def run_code(self, path: str):
         if self.emulator_path is None:
             raise ValueError("Path to emulator is not specified.")
 
         process = subprocess.Popen([self.emulator_path, path], stdout=subprocess.PIPE)
+        _, output_error = process.communicate(timeout=120)
+
+        if process.returncode != 0:
+            raw_error_output = output_error.decode().strip()
+            raise RuntimeError(f"Error during emulator run: {raw_error_output}")
+
+        self.load_data_from_output("/tmp/asemu_output")
+
+
+    def run_executable(self, path: str):
+        if self.emulator_path is None:
+            raise ValueError("Path to emulator is not specified.")
+
+        process = subprocess.Popen([self.emulator_path, "-e", path], stdout=subprocess.PIPE)
         _, output_error = process.communicate(timeout=120)
 
         if process.returncode != 0:

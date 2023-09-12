@@ -97,6 +97,25 @@ class MainWindow(QMainWindow):
 
                 message_box.exec()
 
+        def run_from_code():
+            dialog = QFileDialog()
+            dialog.setFileMode(QFileDialog.AnyFile)
+
+            dialog.exec()
+
+            file = dialog.selectedFiles()[0]
+
+            try:
+                self.view_model.run_code(file)
+            except Exception as err:
+                message_box = QMessageBox()
+                message_box.setText("Code running error!")
+                message_box.setInformativeText(f"{err}")
+
+                message_box.setIcon(QMessageBox.Critical)
+
+                message_box.exec()
+
         def run_from_executable():
             dialog = QFileDialog()
             dialog.setFileMode(QFileDialog.AnyFile)
@@ -151,6 +170,9 @@ class MainWindow(QMainWindow):
 
         menu_run = menu_bar.addMenu("&Run")
 
+        action_code = QAction("From source code", self)
+        action_code.triggered.connect(run_from_code)
+
         action_executable = QAction("From executable", self)
         action_executable.triggered.connect(run_from_executable)
 
@@ -163,6 +185,7 @@ class MainWindow(QMainWindow):
         menu_file.addSeparator()
         menu_file.addAction(action_exit)
 
+        menu_run.addAction(action_code)
         menu_run.addAction(action_executable)
         menu_run.addAction(action_output)
 
