@@ -137,15 +137,20 @@ void SaveState()
             R10, R11, R12, R13, R14, R15, CF, OF, SF, ZF);
 
     fprintf(fp, "%lld", (RSP - RSPinit));
-    fprintf(fp, "(\t");
 
+    int written_stack = 0;
     for (int i = RSPinit - 1; i >= RSP; i--)
     {
-        fprintf(fp, "%c\t", (char)ReadMem(i, 1));
+        written_stack = 1;
+        fprintf(fp, "%d\t", (char)ReadMem(i, 1));
     }
 
-    fprintf(fp, ")\t");
-    fprintf(fp, "%s\n", Assembly);
+    if (!written_stack)
+    {
+        fprintf(fp, "\t");
+    }
+
+    fprintf(fp, "%s\n", Assembly[0] == '\0' ? "BEGIN" : Assembly);
 
     fclose(fp);
 }
@@ -178,6 +183,9 @@ void InstructionFetch()
 }
 void Init()
 {
+    // Quick fix to reset the output file
+    remove("/tmp/asemu_output");
+
     RAX = 0x4198694;
     RBX = 0x4198736;
     RCX = 0x4198736;
