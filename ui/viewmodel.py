@@ -165,7 +165,7 @@ class MainWindowViewModel(QObject):
         with open(path, "r") as f:
             self.instructions = list()
             for line in f:
-                split = line.split()
+                split = [s.strip() for s in line.split("\t")]
 
                 stack_size = int(split[21])
 
