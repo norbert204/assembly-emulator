@@ -135,6 +135,25 @@ class MainWindow(QMainWindow):
 
                 message_box.exec()
 
+        def run_from_ram_file():
+            dialog = QFileDialog()
+            dialog.setFileMode(QFileDialog.AnyFile)
+
+            dialog.exec()
+
+            file = dialog.selectedFiles()[0]
+
+            try:
+                self.view_model.run_emulator(file, EmulatorMode.RAM_FILE)
+            except Exception as err:
+                message_box = QMessageBox()
+                message_box.setText("Executable running error!")
+                message_box.setInformativeText(f"{err}")
+
+                message_box.setIcon(QMessageBox.Critical)
+
+                message_box.exec()
+
         def run_from_output():
             dialog = QFileDialog()
             dialog.setFileMode(QFileDialog.AnyFile)
@@ -176,6 +195,9 @@ class MainWindow(QMainWindow):
         action_executable = QAction("From executable", self)
         action_executable.triggered.connect(run_from_executable)
 
+        action_ram = QAction("From RAM file", self)
+        action_ram.triggered.connect(run_from_ram_file)
+
         action_output = QAction("From output file", self)
         action_output.triggered.connect(run_from_output)
 
@@ -187,6 +209,7 @@ class MainWindow(QMainWindow):
 
         menu_run.addAction(action_code)
         menu_run.addAction(action_executable)
+        menu_run.addAction(action_ram)
         menu_run.addAction(action_output)
 
         return menu_bar
