@@ -65,6 +65,12 @@ unsigned char MachineCode[32];    // bytes of the current machine code
 long long int RSPinit;            // initial value of RSP
 int Run;                          // main loop flag (1: repeat fetch-execute loop; 0: terminate run)
 
+#define Mask64 18446744073709551615u
+#define Mask32 4294967295u
+#define Mask16 65535u
+#define Mask8h 65280u
+#define Mask8l 255u
+
 /* Headers of subroutines */
 void Init();
 // Read RAM file to initialize RIP
