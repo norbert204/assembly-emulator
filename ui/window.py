@@ -19,8 +19,8 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
 
         main_layout = QGridLayout()
-        main_layout.setColumnStretch(0, 1)
-        main_layout.setColumnStretch(1, 1)
+        main_layout.setColumnStretch(0, 2)
+        main_layout.setColumnStretch(1, 2)
         main_layout.setColumnStretch(2, 1)
         main_layout.setHorizontalSpacing(20)
 
@@ -32,8 +32,8 @@ class MainWindow(QMainWindow):
 
         main_layout.addLayout(self._create_toolbar_layout(), 0, 0, 1, 3)
         main_layout.addLayout(self._create_instructions_layout(), 1, 0, 1, 1)
-        main_layout.addLayout(self._create_stack_layout(), 1, 1, 1, 1)
-        main_layout.addLayout(self._create_register_layout(), 1, 2, 1, 1)
+        main_layout.addLayout(self._create_stack_layout(), 1, 2, 1, 1)
+        main_layout.addLayout(self._create_register_layout(), 1, 1, 1, 1)
 
         self.setMenuBar(self._create_menu_bar())
 
