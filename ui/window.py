@@ -237,9 +237,9 @@ class MainWindow(QMainWindow):
             label_value_hex = QLabel()
             label_value_hex.setAlignment(Qt.AlignRight)
 
-            row.addWidget(label_title)
-            row.addWidget(label_value)
-            row.addWidget(label_value_hex)
+            row.addWidget(label_title, 1)
+            row.addWidget(label_value, 10)
+            row.addWidget(label_value_hex, 10)
 
             layout.addLayout(row)
             labels[k] = (label_value, label_value_hex)
