@@ -46,7 +46,7 @@ class MainWindow(QMainWindow):
 
 
     def _update_emulator_path(self, path: str):
-        self.label_emulator_path.setText(f"Emulator path: {path}")
+        self.label_emulator_path.setText(path)
 
 
     def _update_current_instruction(self, instruction: Instruction):
@@ -76,102 +76,44 @@ class MainWindow(QMainWindow):
             self.list_instructions.addItem(item)
         self.list_instructions.setCurrentItem(self.list_instructions.itemAt(0, 0))
 
+    # Layout creation
 
     def _create_menu_bar(self) -> QMenuBar:
         def load_emulator():
-            dialog = QFileDialog()
-            dialog.setFileMode(QFileDialog.AnyFile)
+            file = self.open_file(name_filter="asemu")
 
-            dialog.exec()
-
-            file = dialog.selectedFiles()[0]
+            if not file:
+                return
 
             try:
                 self.view_model.load_emulator(file)
             except Exception as err:
-                message_box = QMessageBox()
-                message_box.setText("Emulator loading error!")
-                message_box.setInformativeText(f"{err}")
+                self.show_error_dialog("Emulator loading error!", str(err))
 
-                message_box.setIcon(QMessageBox.Critical)
 
-                message_box.exec()
+        def run_emulator(mode: EmulatorMode):
+            file = self.open_file()
 
-        def run_from_code():
-            dialog = QFileDialog()
-            dialog.setFileMode(QFileDialog.AnyFile)
-
-            dialog.exec()
-
-            file = dialog.selectedFiles()[0]
+            if not file:
+                return
 
             try:
-                self.view_model.run_emulator(file, EmulatorMode.CODE)
+                self.view_model.run_emulator(file, mode)
             except Exception as err:
-                message_box = QMessageBox()
-                message_box.setText("Code running error!")
-                message_box.setInformativeText(f"{err}")
+                self.show_error_dialog("Code running error!", str(err))
 
-                message_box.setIcon(QMessageBox.Critical)
-
-                message_box.exec()
-
-        def run_from_executable():
-            dialog = QFileDialog()
-            dialog.setFileMode(QFileDialog.AnyFile)
-
-            dialog.exec()
-
-            file = dialog.selectedFiles()[0]
-
-            try:
-                self.view_model.run_emulator(file, EmulatorMode.EXECUTABLE)
-            except Exception as err:
-                message_box = QMessageBox()
-                message_box.setText("Executable running error!")
-                message_box.setInformativeText(f"{err}")
-
-                message_box.setIcon(QMessageBox.Critical)
-
-                message_box.exec()
-
-        def run_from_ram_file():
-            dialog = QFileDialog()
-            dialog.setFileMode(QFileDialog.AnyFile)
-
-            dialog.exec()
-
-            file = dialog.selectedFiles()[0]
-
-            try:
-                self.view_model.run_emulator(file, EmulatorMode.RAM_FILE)
-            except Exception as err:
-                message_box = QMessageBox()
-                message_box.setText("Executable running error!")
-                message_box.setInformativeText(f"{err}")
-
-                message_box.setIcon(QMessageBox.Critical)
-
-                message_box.exec()
 
         def run_from_output():
-            dialog = QFileDialog()
-            dialog.setFileMode(QFileDialog.AnyFile)
+            file = self.open_file()
 
-            dialog.exec()
-
-            file = dialog.selectedFiles()[0]
+            if not file:
+                return
 
             try:
                 self.view_model.load_data_from_output(file)
             except Exception as err:
-                message_box = QMessageBox()
-                message_box.setText("Executable running error!")
-                message_box.setInformativeText(f"{err}")
+                self.show_error_dialog("Output loading error!", str(err))
 
-                message_box.setIcon(QMessageBox.Critical)
-
-                message_box.exec()
 
         menu_bar = QMenuBar(self)
 
@@ -190,13 +132,13 @@ class MainWindow(QMainWindow):
         menu_run = menu_bar.addMenu("&Run")
 
         action_code = QAction("From source code", self)
-        action_code.triggered.connect(run_from_code)
+        action_code.triggered.connect(lambda: run_emulator(EmulatorMode.CODE))
 
         action_executable = QAction("From executable", self)
-        action_executable.triggered.connect(run_from_executable)
+        action_executable.triggered.connect(lambda: run_emulator(EmulatorMode.EXECUTABLE))
 
         action_ram = QAction("From RAM file", self)
-        action_ram.triggered.connect(run_from_ram_file)
+        action_ram.triggered.connect(lambda: run_emulator(EmulatorMode.RAM_FILE))
 
         action_output = QAction("From output file", self)
         action_output.triggered.connect(run_from_output)
@@ -326,6 +268,32 @@ class MainWindow(QMainWindow):
         self.list_stack = list_stack
 
         return layout
+
+
+    # Helpers
+
+    def open_file(self, name_filter: str | None = None) -> str | None:
+        dialog = QFileDialog()
+        dialog.setFileMode(QFileDialog.ExistingFile)
+
+        if name_filter:
+            dialog.setNameFilter(name_filter)
+
+        if dialog.exec() == QDialog.Accepted:
+            return dialog.selectedFiles()[0]
+
+        return None
+
+
+    def show_error_dialog(self, title: str, text: str):
+        message_box = QMessageBox()
+
+        message_box.setWindowTitle(title)
+        message_box.setInformativeText(text)
+
+        message_box.setIcon(QMessageBox.Critical)
+
+        message_box.exec()
 
 
     @staticmethod
