@@ -190,7 +190,8 @@ class MainWindow(QMainWindow):
 
     def _create_instructions_layout(self) -> QLayout:
         def selection_changed():
-            self.view_model.change_current_instruction(self.list_instructions.selectedIndexes()[0].row())
+            if self.list_instructions.selectedIndexes():
+                self.view_model.change_current_instruction(self.list_instructions.selectedIndexes()[0].row())
 
         layout = QVBoxLayout()
 

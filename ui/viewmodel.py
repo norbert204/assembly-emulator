@@ -170,7 +170,7 @@ class MainWindowViewModel(QObject):
 
                 stack_size = int(split[21])
 
-                stack_bytes_reverse = []
+                stack_bytes_reverse = list()
 
                 if stack_size:
                     stack_bytes_reverse=[int(x) for x in split[22:-1]]
