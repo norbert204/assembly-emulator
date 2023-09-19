@@ -1,6 +1,5 @@
 import sys
-from PyQt5 import QtCore
-from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from viewmodel import Instruction, MainWindowViewModel, EmulatorMode
@@ -43,6 +42,13 @@ class MainWindow(QMainWindow):
         self.view_model.signal_emulator_path.connect(self._update_emulator_path)
         self.view_model.signal_current_instruction.connect(self._update_current_instruction)
         self.view_model.signal_instructions.connect(self._update_instructions)
+
+        # Try to load emulator
+
+        try:
+            self.view_model.load_emulator("../asemu")
+        except:
+            self.show_error_dialog("Emulator loading error", "Emulator cannot be found. Please load it manually!")
 
 
     def _update_emulator_path(self, path: str):
@@ -226,7 +232,7 @@ class MainWindow(QMainWindow):
             label_title.setText(k.upper())
 
             label_value = QLabel()
-            label_value.setAlignment(Qt.AlignRight)
+            label_value.setAlignment(Qt.AlignRight)     # A few text editors might show this as an error.
             label_value_hex = QLabel()
             label_value_hex.setAlignment(Qt.AlignRight)
 
