@@ -1,3 +1,55 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "x86_64.h"
+
+long long int RAX;                // 64-bit general purpose A register
+long long int RBX;                // 64-bit general purpose B register
+long long int RCX;                // 64-bit general purpose C register
+long long int RDX;                // 64-bit general purpose D register
+long long int RSI;                // 64-bit source index register
+long long int RDI;                // 64-bit destination index register
+long long int RSP;                // 64-bit stack pointer register
+long long int RBP;                // 64-bit base pointer register
+long long int R8;                 // 64-bit general purpose 8 register
+long long int R9;                 // 64-bit general purpose 9 register
+long long int R10;                // 64-bit general purpose 10 register
+long long int R11;                // 64-bit general purpose 11 register
+long long int R12;                // 64-bit general purpose 12 register
+long long int R13;                // 64-bit general purpose 13 register
+long long int R14;                // 64-bit general purpose 14 register
+long long int R15;                // 64-bit general purpose 15 register
+long long int RIP;                // 64-bit instruction pointer register
+int OF;                           // overflow flag bit of RFLAGS
+int CF;                           // carry flag bit of RFLAGS
+int SF;                           // sign flag bit of RFLAGS
+int ZF;                           // zero flag bit of RFLAGS
+
+long long int ALUin1;             // inner register for ALU first input
+long long int ALUin2;             // inner register for ALU second input
+long long int ALUout;             // inner register for ALU result
+long long int OpMaskDest;         // mask according to the destination operand
+long long int OpMaskSource;       // mask according to the source operand
+
+MemDataUnit *MemData;             // head pointer of data memory linked list
+MemInstUnit *MemInst;             // head pointer of instruction memory linked list
+
+long long int Address;            // current memory address
+int RW_Size;                      // number of bytes in memory access
+char Mnemonic[32];                // mnemonic of current instruction
+char Operand1[32];                // simplified destination operand
+char Operand2[32];                // simplified source operand
+char Operand3[32];                // simplified (optional) source operand
+char Assembly[256];               // text of assembly instruction
+int InstLength;                   // number of bytes in the current machine code
+unsigned char MachineCode[32];    // bytes of the current machine code
+
+long long int RSPinit;            // initial value of RSP
+int Run;                          // main loop flag (1: repeat fetch-execute loop; 0: terminate run)
+
+long long int *WriteBackDest;
+long long int WriteBackAddress;
+int WriteBackSize;
 
 long long int ReadMem(long long int address, int size)
 {
@@ -71,7 +123,7 @@ void WriteMem(long long int address, int size, long long int data)
 
 void SaveState()
 {
-    char* file = "output.txt";
+    char* file = "/tmp/asemu_output";
     FILE *fp = fopen(file, "a");
     if (fp == NULL)
     {
@@ -157,7 +209,7 @@ void Init()
 
     int CodeSegment = 0; // code segment indicator in RAM.txt
     char *line = malloc(Mask8l);
-    FILE *RAM = fopen("RAM.txt", "rt");
+    FILE* RAM = fopen("/tmp/asemu_ram", "rt");
     fgets(line, Mask8l, RAM);
     RIP = strtol(strchr(line, 32), NULL, 16);
     while (!feof(RAM))
