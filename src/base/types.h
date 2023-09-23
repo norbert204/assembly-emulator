@@ -8,3 +8,9 @@ typedef enum
     DATA,
     BSS,
 } segment;
+
+typedef union
+{
+    long long int original_number;
+    char bytes[8];
+} number_as_bytes;
