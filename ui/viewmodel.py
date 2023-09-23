@@ -23,6 +23,7 @@ class Instruction():
     def __init__(
             self,
             assembly: str = "",
+            machine_code: str = "",
             rip: int = 0,
             rax: int = 0,
             rbx: int = 0,
@@ -49,6 +50,7 @@ class Instruction():
         ):
 
         self.assembly = assembly
+        self.machine_code = machine_code
         self.rip = rip
         self.rax = rax
         self.rbx = rbx 
@@ -172,11 +174,12 @@ class MainWindowViewModel(QObject):
 
                 stack_bytes_reverse = list()
 
-                if stack_size:
-                    stack_bytes_reverse=[int(x) for x in split[22:-1]]
+                # if stack_size:
+                #     stack_bytes_reverse=[int(x) for x in split[22:-1]]
 
                 instruction = Instruction(
                     assembly=split[-1],
+                    machine_code=split[-2],
                     rip=int(split[0]),
                     rax=int(split[1]),
                     rbx=int(split[2]),
@@ -206,7 +209,9 @@ class MainWindowViewModel(QObject):
         # Temporary fix
         if self.instructions:
             self.instructions[0].assembly = "BEGIN"
+            self.instructions[0].machine_code = "-"
             self.instructions[-1].assembly = "END"
+            self.instructions[-1].machine_code = "-"
 
         self.signal_instructions.emit(self.instructions)
         self.signal_current_instruction.emit(self.current_instruction())

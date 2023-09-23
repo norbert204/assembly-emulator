@@ -68,6 +68,8 @@ class MainWindow(QMainWindow):
             item.setText(f"{i}")
             self.list_stack.addItem(item)
 
+        self.label_machine_code.setText(instruction.machine_code)
+
 
     def _update_instructions(self, instructions: list[Instruction]):
         self.list_instructions.clear()
@@ -247,7 +249,34 @@ class MainWindow(QMainWindow):
             if k.upper() in spacer_after:
                 layout.addSpacerItem(small_spacer)
 
+
+        layout.addSpacerItem(small_spacer)
+
+        # Machine code
+
+        spacer_h = QSpacerItem(10, 0, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        layout_mc = QHBoxLayout()
+        layout_mc.setSpacing(20)
+
+        label_machine_title = QLabel()
+        label_machine_title.setText("Machine code:")
+        
+        label_machine_code = QLabel()
+
+        layout_mc.addWidget(label_machine_title)
+        layout_mc.addWidget(label_machine_code)
+
+        layout_mc.addSpacerItem(spacer_h)
+
+        layout.addLayout(layout_mc)
+
+        # Registering labels to instance
+
         self.labels_register = labels
+        self.label_machine_code = label_machine_code
+
+        # Rest of styling
 
         spacer = QSpacerItem(0, 10, QSizePolicy.Minimum, QSizePolicy.Expanding)
         layout.addSpacerItem(spacer)

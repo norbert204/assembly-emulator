@@ -150,6 +150,8 @@ void SaveState()
         fprintf(fp, "\t");
     }
 
+    fprintf(fp, "%s\t", MachineCode[0] == '\0' ? "-" : MachineCode);
+
     fprintf(fp, "%s\n", Assembly[0] == '\0' ? "BEGIN" : Assembly);
 
     fclose(fp);
