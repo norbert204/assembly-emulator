@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "x86_64.h"
-#include "../base/types.h"
 
 long long int RAX;                // 64-bit general purpose A register
 long long int RBX;                // 64-bit general purpose B register
@@ -132,29 +131,18 @@ void SaveState()
         exit(32);
     }
 
-    fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t",
+    fprintf(fp, "%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t",
                   RIP,  RAX,  RBX,  RCX,  RDX,  RDI,  RSI,  RSP,  RBP,  R8,   R9);
-    fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\t%d\t",
+    fprintf(fp, "%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%X\t%X\t%X\t%X\t",
                   R10,  R11,  R12,  R13,  R14,  R15, CF, OF, SF, ZF);
 
-    fprintf(fp, "%lld", (RSPinit - RSP) / sizeof(long long int));
+    fprintf(fp, "%llX", (RSPinit - RSP));
 
     int written_stack = 0;
-    size_t long_size = sizeof(long long int);
-
-    number_as_bytes num;
-    memset(&num, 0, 8);
-
     for (int i = 0 ; i < RSPinit - RSP ; i++)
     {
-        num.bytes[(long_size - 1) - i % long_size] = ReadMem(RSPinit-i, 1);
-
-        if (i % long_size == 7 && i > 0)
-        {
-            written_stack = 1;
-
-            fprintf(fp, "\t%lld", num.original_number);
-        }
+        written_stack = 1;
+        fprintf(fp, "\t%X", ReadMem(RSPinit-i, 1));
     }
 
     fprintf(fp, "\t");
