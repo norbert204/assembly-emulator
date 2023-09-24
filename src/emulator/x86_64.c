@@ -131,18 +131,16 @@ void SaveState()
         exit(32);
     }
 
-    fprintf(fp, "%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t",
+    fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t",
                   RIP,  RAX,  RBX,  RCX,  RDX,  RDI,  RSI,  RSP,  RBP,  R8,   R9);
-    fprintf(fp, "%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%X\t%X\t%X\t%X\t",
+    fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\t%d\t",
                   R10,  R11,  R12,  R13,  R14,  R15, CF, OF, SF, ZF);
 
-    fprintf(fp, "%llX", (RSPinit - RSP));
+    fprintf(fp, "%lld", (RSPinit - RSP));
 
-    int written_stack = 0;
     for (int i = 0 ; i < RSPinit - RSP ; i++)
     {
-        written_stack = 1;
-        fprintf(fp, "\t%X", ReadMem(RSPinit-i, 1));
+        fprintf(fp, "\t%d", ReadMem(RSPinit-i, 1));
     }
 
     fprintf(fp, "\t");

@@ -174,8 +174,9 @@ class MainWindowViewModel(QObject):
 
                 stack_bytes_reverse = list()
 
-                # if stack_size:
-                #     stack_bytes_reverse=[int(x) for x in split[22:-1]]
+                if stack_size:
+                    # To make it look right we need to reverse them again
+                    stack_bytes_reverse=[int(x) for x in split[-3:21:-1]]
 
                 instruction = Instruction(
                     assembly=split[-1],
