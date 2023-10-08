@@ -1,4 +1,3 @@
-//INCLUDES
 #include "x86_64.h"
 
 #include <stdio.h>
@@ -18,11 +17,11 @@ long long int ReadMem(long long int address, int size)
             for (int i = 0; i < size; i++)
             {                
                 toreturn |= (long long int)(((long long int)(current->byte)<<(i*8)));
-                if(!current->next) break;
+                if (!current->next) break;
                 current = current->next;
-                if (current->addr != address+(i+i))
+                if (current->addr != address + (i+1))
                 {
-                    Run = 0; //Global error variable; stop running
+                    Run = 0;
                     fprintf(stderr, "Memory read error! Not following address!");
                     exit(42);
                 }                
@@ -262,338 +261,540 @@ void setz(){
 
 /* --- SHIFT AND ROTATE INSTRUCTIONS --- */
 
-void rol(){
-    if (OpMaskDest == Mask8l)
-    {
-        ALUout = (ALUin1 << ALUin2) | (ALUin1 >> (8 - ALUin2));
-        CF = ALUin1 >> (7 - (ALUin2 - 1)) & 1;
-        if(ALUin2 == 1) { OF = CF ^ ((ALUout >> 7) & 1); }
+void rol(){ //100% tested
+    int mask;
+    if (OpMaskSource == Mask8l) { 
+        mask = 7;
+        char val = (char)ALUin1;
+        for (size_t i = 0; i < ALUin2; i++)
+        {
+            ALUout = (val << 1) | ((unsigned char)val >> mask);
+            CF = (ALUout >> (mask + 1)) & 1;
+            if (ALUin2 == 1 && i == 0) { OF = CF ^ ((ALUout >> mask) & 1); }
+            if (CF == 1) ALUout |= 1;
+            else ALUout &= ~(1);
+            val = ALUout;
+        }
+        ALUout = ALUout & ~(Mask64-Mask8l);
     }
-    if (OpMaskDest == Mask16)
-    {
-        ALUout = (ALUin1 << ALUin2) | (ALUin1 >> (16 - ALUin2));
-        CF = ALUin1 >> (15 - (ALUin2 - 1)) & 1;
-        if(ALUin2 == 1) { OF = CF ^ ((ALUout >> 15) & 1); }
+    //
+    else if (OpMaskSource == Mask16) {
+        mask = 15;
+        short int val = (short int)ALUin1;
+        for (size_t i = 0; i < ALUin2; i++)
+        {
+            ALUout = (val << 1) | ((unsigned short int)val >> mask);
+            CF = (ALUout >> (mask + 1)) & 1;
+            if (ALUin2 == 1 && i == 0) { OF = CF ^ ((ALUout >> mask) & 1); }
+            if (CF == 1) ALUout |= 1;
+            else ALUout &= ~(1);
+            val = ALUout;
+        }
+        ALUout = ALUout & ~(Mask64-Mask16);
+    }    
+    //
+    else if (OpMaskSource == Mask32) { 
+        mask = 31;
+        long long int val = ALUin1;
+        for (size_t i = 0; i < ALUin2; i++)
+        {
+            ALUout = (val << 1) | ((unsigned int)val >> mask);
+            CF = (ALUout >> (mask + 1)) & 1;
+            if (ALUin2 == 1 && i == 0) { OF = CF ^ ((ALUout >> mask) & 1); }
+            if (CF == 1) ALUout |= 1;
+            else ALUout &= ~(1);
+            val = ALUout;
+        }
+        ALUout = ALUout & ~(Mask64-Mask32);
     }
-    if (OpMaskDest == Mask32)
-    {
-        ALUout = (ALUin1 << ALUin2) | (ALUin1 >> (32 - ALUin2));
-        CF = ALUin1 >> (31 - (ALUin2 - 1)) & 1;
-        if(ALUin2 == 1) { OF = CF ^ ((ALUout >> 31) & 1); }
+    //
+    else if (OpMaskSource == Mask64) { 
+        mask = 63;
+        for (int i = 0; i < ALUin2; i++)
+        {
+            ALUout = (ALUin1 << 1) | ((unsigned long long int)ALUin1 >> mask);
+            CF = (ALUout >> (mask + 1)) & 1;
+            if (ALUin2 == 1 && i == 0) { OF = CF ^ ((ALUout >> mask) & 1); }
+            if (CF == 1) ALUout |= 1;
+            else ALUout &= ~(1);
+            ALUin1 = ALUout;
+        }
     }
-    if (OpMaskDest == Mask64)
-    {        
-        ALUout = (ALUin1 << ALUin2) | (ALUin1 >> (64 - ALUin2));
-        CF = ALUin1 >> (63 - (ALUin2 - 1)) & 1;
-        if(ALUin2 == 1) { OF = CF ^ ((ALUout >> 63) & 1); }
-    }
+    else {}
 }
-void ror(){
-    if (OpMaskDest == Mask8l)
-    {
-        ALUout = (ALUin1 >> ALUin2) | (ALUin1 << (8 - ALUin2));
-        CF = ALUin1 >> (ALUin2 - 1) & 1;
-        if (ALUin2 == 1) { OF = ((ALUout >> 7) & 1) ^ ((ALUout >> 6) & 1); }
+void ror(){ //100% tested
+    int mask;
+    if (OpMaskSource == Mask8l) {
+        mask = 7;
+        char val = (char)ALUin1;
+        for (size_t i = 0; i < ALUin2; i++)
+        {
+            ALUout = (val << mask) | ((unsigned char)val >> 1);
+            CF = (ALUout >> mask) & 1;
+            if (ALUin2 == 1 && i == 0) { OF = ((ALUout >> mask) & 1) ^ ((ALUout >> (mask - 1)) & 1); }
+            if (CF == 1) ALUout |= (1<<mask);
+            else ALUout &= ~(1<<mask);
+            val = ALUout;
+        }
+        ALUout = ALUout & Mask8l;
     }
-    if (OpMaskDest == Mask16)
-    {
-        ALUout = (ALUin1 >> ALUin2) | (ALUin1 << (16 - ALUin2));
-        CF = ALUin1 >> (ALUin2 - 1) & 1;
-        if (ALUin2 == 1) { OF = ((ALUout >> 15) & 1) ^ ((ALUout >> 14) & 1); }
+    //
+    else if (OpMaskSource == Mask16) {
+        mask = 15;
+        short int val = (short int)ALUin1;
+        for (size_t i = 0; i < ALUin2; i++)
+        {
+            ALUout = (val << mask) | ((unsigned short int)val >> 1);
+            CF = (ALUout >> mask) & 1;
+            if (ALUin2 == 1 && i == 0) { OF = ((ALUout >> mask) & 1) ^ ((ALUout >> (mask - 1)) & 1); }  
+            if (CF == 1) ALUout |= (1<<mask);
+            else ALUout &= ~(1<<mask);
+            val = ALUout;
+        }
+        ALUout = ALUout & Mask16;
     }
-    if (OpMaskDest == Mask32)
-    {
-        ALUout = (ALUin1 >> ALUin2) | (ALUin1 << (32 - ALUin2));
-        CF = ALUin1 >> (ALUin2 - 1) & 1;
-        if (ALUin2 == 1) { OF = ((ALUout >> 31) & 1) ^ ((ALUout >> 30) & 1); }
+    //
+    else if (OpMaskSource == Mask32) {
+        mask = 31;
+        int val = (int)ALUin1;
+        for (size_t i = 0; i < ALUin2; i++)
+        {
+            ALUout = (val << mask) | ((unsigned int)val >> 1);
+            CF = (ALUout >> mask) & 1;
+            if (ALUin2 == 1 && i == 0) { OF = ((ALUout >> mask) & 1) ^ ((ALUout >> (mask - 1)) & 1); }
+            if (CF == 1) ALUout |= (1<<mask);
+            else ALUout &= ~(1<<mask);
+            val = ALUout;
+        }
+        ALUout = ALUout & Mask32;
     }
-    if (OpMaskDest == Mask64)
-    {
-        ALUout = (ALUin1 >> ALUin2) | (ALUin1 << (64 - ALUin2));
-        CF = ALUin1 >> (ALUin2 - 1) & 1;
-        if (ALUin2 == 1) { OF = ((ALUout >> 63) & 1) ^ ((ALUout >> 62) & 1); }
+    //
+    else if (OpMaskSource == Mask64) {
+        mask = 63;
+        for (int i = 0; i < ALUin2; i++)
+        {
+            ALUout = (ALUin1 << mask) | ((unsigned long long int)ALUin1 >> 1);
+            CF = (ALUout >> mask) & 1;
+            if (ALUin2 == 1 && i == 0) { OF = ((ALUout >> mask) & 1) ^ ((ALUout >> (mask - 1)) & 1); }    
+            if (CF == 1) ALUout |= ((long long int)1<<mask);
+            else ALUout &= ~((long long int)1<<mask);
+            ALUin1 = ALUout;
+        }        
     }
+    else {}
 }
-void rcl(){
-    if (OpMaskDest == Mask8l)
-    {
-        int temp = 0;
-        for (int i = 0; i < ALUin2; i++)
+void rcl(){ //100% tested
+    int mask;
+    if (OpMaskSource == Mask8l) { 
+        mask = 7;
+        int temp;
+        char val = (char)ALUin1;
+        for (size_t i = 0; i < ALUin2; i++)
         {
             temp = CF;
-            CF = ALUin1 >> 7 & 1;
-            ALUout = (ALUin1 << 1) | (((unsigned long long int)ALUin1) >> 7);
-            if (temp == 1) ALUout |= (long long int)1;
-            else ALUout &= ~((long long int)1);
-            ALUin1 = ALUout;
+            ALUout = (val << 1) | ((unsigned char)val >> mask);
+            CF = (ALUout >> (mask + 1)) & 1;
+            if (temp == 1) ALUout |= 1;
+            else ALUout &= ~(1);
+            val = ALUout;
         }
-        OF = CF ^ ((ALUout >> 7) & 1);
+        ALUout = ALUout & ~(Mask64-Mask8l);
+        OF = CF ^ ((ALUout >> mask) & 1);
     }
-    if (OpMaskDest == Mask16)
-    {
-        int temp = 0;
-        for (int i = 0; i < ALUin2; i++)
+    //
+    else if (OpMaskSource == Mask16) {
+        mask = 15;
+        int temp; 
+        short int val = (short int)ALUin1;
+        for (size_t i = 0; i < ALUin2; i++)
         {
             temp = CF;
-            CF = ALUin1 >> 15 & 1;
-            ALUout = (ALUin1 << 1) | (((unsigned long long int)ALUin1) >> 15);
-            if (temp == 1) ALUout |= (long long int)1;
-            else ALUout &= ~((long long int)1);
-            ALUin1 = ALUout;
+            ALUout = (val << 1) | ((unsigned short int)val >> mask);
+            CF = (ALUout >> (mask + 1)) & 1;
+            if (temp == 1) ALUout |= 1;
+            else ALUout &= ~(1);
+            val = ALUout;
         }
-        OF = CF ^ ((ALUout >> 15) & 1);
+        ALUout = ALUout & ~(Mask64-Mask16);
+        OF = CF ^ ((ALUout >> mask) & 1);
     }
-    if (OpMaskDest == Mask32)
-    {
-        int temp = 0;
-        for (int i = 0; i < ALUin2; i++)
+    //
+    else if (OpMaskSource == Mask32) {
+        mask = 31;
+        int temp;
+        long long int val = ALUin1;
+        for (size_t i = 0; i < ALUin2; i++)
         {
             temp = CF;
-            CF = ALUin1 >> 31 & 1;
-            ALUout = (ALUin1 << 1) | (((unsigned long long int)ALUin1) >> 31);
-            if (temp == 1) ALUout |= (long long int)1;
-            else ALUout &= ~((long long int)1);
-            ALUin1 = ALUout;
+            ALUout = (val << 1) | ((unsigned int)val >> mask);
+            CF = (ALUout >> (mask + 1)) & 1;
+            if (temp == 1) ALUout |= 1;
+            else ALUout &= ~(1);
+            val = ALUout;
         }
-        OF = CF ^ ((ALUout >> 31) & 1);
+        ALUout = ALUout & ~(Mask64-Mask32);
+        OF = CF ^ ((ALUout >> mask) & 1);
     }
-    if (OpMaskDest == Mask64)
+    //
+    else if (OpMaskSource == Mask64)
     {
-        int temp = 0;
-        for (int i = 0; i < ALUin2; i++)
+        mask = 63;
+        int temp;
+        for (size_t i = 0; i < ALUin2; i++)
         {
             temp = CF;
-            CF = ALUin1 >> 63 & 1;
-            ALUout = (ALUin1 << 1) | (((unsigned long long int)ALUin1) >> 63);
-            if (temp == 1) ALUout |= (long long int)1;
-            else ALUout &= ~((long long int)1);
+            ALUout = (ALUin1 << 1) | ((unsigned long long int)ALUin1 >> mask);
+            CF = (ALUout >> (mask + 1)) & 1;
+            if (temp == 1) ALUout |= 1;
+            else ALUout &= ~(1);
             ALUin1 = ALUout;
         }
-        OF = CF ^ ((ALUout >> 63) & 1);
+        OF = CF ^ ((ALUout >> mask) & 1);
     }
+    else {}
 }
-void rcr(){
-    if (OpMaskDest == Mask8l)
-    {
-        unsigned int temp;
-        for (int i = 0; i < ALUin2; i++)
+void rcr(){ //100% tested
+    int mask;
+    if (OpMaskSource == Mask8l) {
+        mask = 7;
+        int temp;
+        char val = (char)ALUin1;
+        for (size_t i = 0; i < ALUin2; i++)
         {
             temp = CF;
-            CF = ALUin1 & 1;
-            ALUout = (ALUin1 >> 1) | (ALUin1 << 7);
-            if (temp == 1) ALUout |= (long long int)1 << 7;
-            else ALUout &= ~((long long int)1 << 7);
-            ALUin1 = ALUout;        
+            ALUout = (val << mask) | ((unsigned char)val >> 1);
+            CF = (ALUout >> mask) & 1;
+            if (temp == 1) ALUout |= (1<<mask);
+            else ALUout &= ~(1<<mask);
+            val = ALUout;
         }
-        OF = ((ALUout >> 7) & 1) ^ ((ALUout >> 6) & 1);
+        ALUout = ALUout & Mask8l;
+        OF = ((ALUout >> mask) & 1) ^ ((ALUout >> (mask - 1)) & 1);
     }
-    if (OpMaskDest == Mask16)
-    {
-        unsigned int temp;
+    //
+    else if (OpMaskSource == Mask16) {
+        mask = 15;
+        int temp;
+        short int val = (short int)ALUin1;
+        for (size_t i = 0; i < ALUin2; i++)
+        {
+            temp = CF;
+            ALUout = (val << mask) | ((unsigned short int)val >> 1);
+            CF = (ALUout >> mask) & 1;
+            if (temp == 1) ALUout |= (1<<mask);
+            else ALUout &= ~(1<<mask);
+            val = ALUout;
+        }
+        ALUout = ALUout & Mask16;
+        OF = ((ALUout >> mask) & 1) ^ ((ALUout >> (mask - 1)) & 1);
+    }
+    //
+    else if (OpMaskSource == Mask32) {
+        mask = 31;
+        int temp;
+        int val = (int)ALUin1;
+        for (size_t i = 0; i < ALUin2; i++)
+        {
+            temp = CF;
+            ALUout = (val << mask) | ((unsigned int)val >> 1);
+            CF = (ALUout >> mask) & 1;
+            if (temp == 1) ALUout |= (1<<mask);
+            else ALUout &= ~(1<<mask);
+            val = ALUout;
+        }
+        ALUout = ALUout & Mask32;
+        OF = ((ALUout >> mask) & 1) ^ ((ALUout >> (mask - 1)) & 1);
+    }
+    //
+    else if (OpMaskSource == Mask64) {
+        mask = 63;
+        int temp;
         for (int i = 0; i < ALUin2; i++)
         {
             temp = CF;
-            CF = ALUin1 & 1;
-            ALUout = (ALUin1 >> 1) | (ALUin1 << 15);
-            if (temp == 1) ALUout |= (long long int)1 << 15;
-            else ALUout &= ~((long long int)1 << 15);
+            ALUout = (ALUin1 << mask) | ((unsigned long long int)ALUin1 >> 1);
+            CF = (ALUout >> mask) & 1;
+            if (temp == 1) ALUout |= ((long long int)1<<mask);
+            else ALUout &= ~((long long int)1<<mask);
             ALUin1 = ALUout;
         }
-        OF = ((ALUout >> 15) & 1) ^ ((ALUout >> 14) & 1);
+        OF = ((ALUout >> mask) & 1) ^ ((ALUout >> (mask - 1)) & 1);
     }
-    if (OpMaskDest == Mask32)
-    {
-        unsigned int temp;
-        for (int i = 0; i < ALUin2; i++)
-        {
-            temp = CF;
-            CF = ALUin1 & 1;
-            ALUout = (ALUin1 >> 1) | (ALUin1 << 31);
-            if (temp == 1) ALUout |= (long long int)1 << 31;
-            else ALUout &= ~((long long int)1 << 31);
-            ALUin1 = ALUout;        
-        }
-        OF = ((ALUout >> 31) & 1) ^ ((ALUout >> 30) & 1);
-    }
-    if (OpMaskDest == Mask32)
-    {
-        unsigned int temp;
-        for (int i = 0; i < ALUin2; i++)
-        {
-            temp = CF;
-            CF = ALUin1 & 1;
-            ALUout = (ALUin1 >> 1) | (ALUin1 << 63);
-            if (temp == 1) ALUout |= (long long int)1 << 63;
-            else ALUout &= ~((long long int)1 << 63);
-            ALUin1 = ALUout;        
-        }
-        OF = ((ALUout >> 63) & 1) ^ ((ALUout >> 62) & 1);
-    }
+    else {}
 }
-void sal(){
-    if (OpMaskDest == Mask8l)
-    {
-        int bitState = (ALUin1 >> (7 - (ALUin2 - 1))) & 1;
-        ALUout = ALUin1 << ALUin2;    
+void sal(){ //100% tested
+    int mask;
+    if (OpMaskSource == Mask8l) { 
+        mask = 7;
+        char val = (char)ALUin1;
+        int bitState = (val >> (mask - (ALUin2 - 1))) & 1;
+        ALUout = (unsigned char)(val << ALUin2 & ~(Mask64 - Mask8l));
         if (ALUin2 == 0) {}
         else { CF = bitState; }
-        if (ALUin2 == 1 && ((ALUout >> 7) & 1) == CF) { OF = 0; }
-        else { OF = 1; }
+        if (ALUin2 == 1) { 
+            if (((ALUout >> mask) & 1) == CF) OF = 0;
+            else OF = 1; }
     }
-    if (OpMaskDest == Mask16)
-    {
-        int bitState = (ALUin1 >> (15 - (ALUin2 - 1))) & 1;
-        ALUout = ALUin1 << ALUin2;    
+    //
+    else if (OpMaskSource == Mask16) { 
+        mask = 15;
+        short int val = (short int)ALUin1;
+        int bitState = (val >> (mask - (ALUin2 - 1))) & 1;
+        ALUout = (unsigned short int)(val << ALUin2 & ~(Mask64 - Mask16));
         if (ALUin2 == 0) {}
         else { CF = bitState; }
-        if (ALUin2 == 1 && ((ALUout >> 15) & 1) == CF) { OF = 0; }
-        else { OF = 1; }
+        if (ALUin2 == 1) { 
+            if (((ALUout >> mask) & 1) == CF) OF = 0;
+            else OF = 1; }
     }
-    if (OpMaskDest == Mask32)
-    {
-        int bitState = (ALUin1 >> (31 - (ALUin2 - 1))) & 1;
-        ALUout = ALUin1 << ALUin2;    
+    //
+    else if (OpMaskSource == Mask32) { 
+        mask = 31;
+        int val = ALUin1;
+        int bitState = (val >> (mask - (ALUin2 - 1))) & 1;
+        ALUout = (unsigned int)(val << ALUin2 & ~(Mask64 - Mask32));
         if (ALUin2 == 0) {}
         else { CF = bitState; }
-        if (ALUin2 == 1 && ((ALUout >> 31) & 1) == CF) { OF = 0; }
-        else { OF = 1; }
+        if (ALUin2 == 1) { 
+            if (((ALUout >> mask) & 1) == CF) OF = 0;
+            else OF = 1; }
     }
-    if (OpMaskDest == Mask64)
-    {
-        int bitState = (ALUin1 >> (63 - (ALUin2 - 1))) & 1;
-        ALUout = ALUin1 << ALUin2;    
+    //
+    else if (OpMaskSource == Mask64) {
+        mask = 63;
+        int bitState = (ALUin1 >> (mask - (ALUin2 - 1))) & 1;
+        ALUout = ALUin1 << ALUin2;
         if (ALUin2 == 0) {}
         else { CF = bitState; }
-        if (ALUin2 == 1 && ((ALUout >> 63) & 1) == CF) { OF = 0; }
-        else { OF = 1; }
+        if (ALUin2 == 1) { 
+            if (((ALUout >> mask) & 1) == CF) OF = 0;
+            else OF = 1; }
     }
+    else {}
 }
-void sar(){
-    /* Don't have to check mask */
-    if (OpMaskDest == Mask8l)
-    {
-        int bitState = (ALUin1 >> (ALUin2 - 1)) & 1;
-        ALUout = ALUin1 >> ALUin2;
+void sar(){ //100% tested
+    int mask;
+    if (OpMaskSource == Mask8l) {
+        mask = 7;
+        char val = (char)ALUin1;
+        int bitState = (val >> (ALUin2 - 1)) & 1;
+        ALUout = (char)(val >> ALUin2);
+        ALUout = ALUout & Mask8l;
         if (ALUin2 == 0) {}
         else { CF = bitState; }
         if (ALUin2 == 1) { OF = 0; }
     }
-    if (OpMaskDest == Mask16)
-    {        
-        int bitState;
-        bitState = (ALUin1 >> (ALUin2 - 1)) & 1;
-        ALUout = ALUin1 >> ALUin2;
+    //
+    else if (OpMaskSource == Mask16) { 
+        mask = 15;
+        short int val = (short int)ALUin1;
+        int bitState = (val >> (ALUin2 - 1)) & 1;
+        ALUout = (short int)(val >> ALUin2);
+        ALUout = ALUout & Mask16;
         if (ALUin2 == 0) {}
         else { CF = bitState; }
         if (ALUin2 == 1) { OF = 0; }
     }
-    if (OpMaskDest == Mask32)
-    {        
-        int bitState;
-        bitState = (ALUin1 >> (ALUin2 - 1)) & 1;
-        ALUout = ALUin1 >> ALUin2;
+    //
+    else if (OpMaskSource == Mask32) { 
+        mask = 31;
+        int val = (int)ALUin1;
+        int bitState = (val >> (ALUin2 - 1)) & 1;
+        ALUout = (int)(val >> ALUin2);
+        ALUout = ALUout & Mask32;
         if (ALUin2 == 0) {}
         else { CF = bitState; }
         if (ALUin2 == 1) { OF = 0; }
     }
-    if (OpMaskDest == Mask64)
-    {
-        int bitState;
-        bitState = (ALUin1 >> (ALUin2 - 1)) & 1;
-        ALUout = ALUin1 >> ALUin2;
+    //
+    else if (OpMaskSource == Mask64) { 
+        mask = 63;
+        long long int val = (long long int)ALUin1;
+        int bitState = (val >> (ALUin2 - 1)) & 1;
+        ALUout = val >> ALUin2;
         if (ALUin2 == 0) {}
         else { CF = bitState; }
         if (ALUin2 == 1) { OF = 0; }
     }
+    else {}
 }
-void shl(){
-    if (OpMaskDest == Mask8l)
-    {
-        int bitState = (ALUin1 >> (7 - (ALUin2 - 1))) & 1;
+void shl(){ //100% tested
+    int mask;
+    if (OpMaskSource == Mask8l) { 
+        mask = 7;
+        char val = (char)ALUin1;
+        int bitState = (val >> (mask - (ALUin2 - 1))) & 1;
+        ALUout = (unsigned char)(val << ALUin2 & ~(Mask64 - Mask8l));
+        if (ALUin2 == 0) {}
+        else { CF = bitState; }
+        if (ALUin2 == 1) { 
+            if (((ALUout >> mask) & 1) == CF) OF = 0;
+            else OF = 1; }
+    }
+    //
+    else if (OpMaskSource == Mask16) { 
+        mask = 15;
+        short int val = (short int)ALUin1;
+        int bitState = (val >> (mask - (ALUin2 - 1))) & 1;
+        ALUout = (unsigned short int)(val << ALUin2 & ~(Mask64 - Mask16));
+        if (ALUin2 == 0) {}
+        else { CF = bitState; }
+        if (ALUin2 == 1) { 
+            if (((ALUout >> mask) & 1) == CF) OF = 0;
+            else OF = 1; }
+    }
+    //
+    else if (OpMaskSource == Mask32) { 
+        mask = 31;
+        int val = ALUin1;
+        int bitState = (val >> (mask - (ALUin2 - 1))) & 1;
+        ALUout = (unsigned int)(val << ALUin2 & ~(Mask64 - Mask32));
+        if (ALUin2 == 0) {}
+        else { CF = bitState; }
+        if (ALUin2 == 1) { 
+            if (((ALUout >> mask) & 1) == CF) OF = 0;
+            else OF = 1; }
+    }
+    //
+    else if (OpMaskSource == Mask64) {
+        mask = 63;
+        int bitState = (ALUin1 >> (mask - (ALUin2 - 1))) & 1;
         ALUout = ALUin1 << ALUin2;
         if (ALUin2 == 0) {}
         else { CF = bitState; }
-        if (ALUin2 == 1 && ((ALUout >> 7) & 1) == CF) { OF = 0; }
-        else { OF = 1; }
+        if (ALUin2 == 1) { 
+            if (((ALUout >> mask) & 1) == CF) OF = 0;
+            else OF = 1; }
     }
-    if (OpMaskDest == Mask16)
-    {
-        int bitState = (ALUin1 >> (15 - (ALUin2 - 1))) & 1;
-        ALUout = ALUin1 << ALUin2;
-        if (ALUin2 == 0) {}
-        else { CF = bitState; }
-        if (ALUin2 == 1 && ((ALUout >> 15) & 1) == CF) { OF = 0; }
-        else { OF = 1; }
-    }
-    if (OpMaskDest == Mask32)
-    {
-        int bitState = (ALUin1 >> (31 - (ALUin2 - 1))) & 1;
-        ALUout = ALUin1 << ALUin2;
-        if (ALUin2 == 0) {}
-        else { CF = bitState; }
-        if (ALUin2 == 1 && ((ALUout >> 31) & 1) == CF) { OF = 0; }
-        else { OF = 1; }
-    }
-    if (OpMaskDest == Mask64)
-    {
-        int bitState = (ALUin1 >> (63 - (ALUin2 - 1))) & 1;
-        ALUout = ALUin1 << ALUin2;
-        if (ALUin2 == 0) {}
-        else { CF = bitState; }
-        if (ALUin2 == 1 && ((ALUout >> 63) & 1) == CF) { OF = 0; }
-        else { OF = 1; }
-    }
+    else {}
 }
-void shr(){
-    if (OpMaskDest == Mask8l)
-    {
-        int bitState = (ALUin1 >> (ALUin2 - 1)) & 1;
-        ALUout = ALUin1 >> ALUin2;
+void shr(){ //100% tested
+    int mask;
+    if (OpMaskSource == Mask8l) { 
+        mask = 7;
+        unsigned char val = (unsigned char)ALUin1;
+        int bitState = (val >> (ALUin2 - 1)) & 1;
+        ALUout = val >> ALUin2;
+        ALUout = ALUout & Mask8l;
         if (ALUin2 == 0) {}
         else { CF = bitState; }
-        if (ALUin2 == 1) { OF = (ALUin1 >> 7) & 1; }
+        if (ALUin2 == 1) { OF = (ALUin1 >> mask) & 1; }
     }
-    if (OpMaskDest == Mask16)
-    {
-        int bitState = (ALUin1 >> (ALUin2 - 1)) & 1;
-        ALUout = ALUin1 >> ALUin2;
+    //
+    else if (OpMaskSource == Mask16) { 
+        mask = 15;
+        unsigned short int val = (unsigned short int)ALUin1;
+        int bitState = (val >> (ALUin2 - 1)) & 1;
+        ALUout = val >> ALUin2;
+        ALUout = ALUout & Mask16;
         if (ALUin2 == 0) {}
         else { CF = bitState; }
-        if (ALUin2 == 1) { OF = (ALUin1 >> 15) & 1; }
+        if (ALUin2 == 1) { OF = (ALUin1 >> mask) & 1; }
     }
-    if (OpMaskDest == Mask32)
-    {
-        int bitState = (ALUin1 >> (ALUin2 - 1)) & 1;
-        ALUout = ALUin1 >> ALUin2;
+    //
+    else if (OpMaskSource == Mask32) { 
+        mask = 31;
+        unsigned int val = (unsigned int)ALUin1;
+        int bitState = (val >> (ALUin2 - 1)) & 1;
+        ALUout = val >> ALUin2;
+        ALUout = ALUout & Mask32;
         if (ALUin2 == 0) {}
         else { CF = bitState; }
-        if (ALUin2 == 1) { OF = (ALUin1 >> 31) & 1; }
+        if (ALUin2 == 1) { OF = (ALUin1 >> mask) & 1; }
     }
-    if (OpMaskDest == Mask64)
-    {
+    //
+    else if (OpMaskSource == Mask64) {
+        mask = 63;
         int bitState = (ALUin1 >> (ALUin2 - 1)) & 1;
-        ALUout = ALUin1 >> ALUin2;
+        ALUout = (unsigned long long int)ALUin1 >> ALUin2;
         if (ALUin2 == 0) {}
         else { CF = bitState; }
-        if (ALUin2 == 1) { OF = (ALUin1 >> 63) & 1; }
+        if (ALUin2 == 1) { OF = (ALUin1 >> mask) & 1; }
     }
+    else {}
 }
 
 /* --- CARRY INSTRUCTIONS --- */
 
 void adc(){
-    long long int temp1 = ALUout;
-    long long int temp2 = ALUin1;
-    long long int result = ALUout + ALUin1 + CF;
-    if ((result >> 63) & 1) { SF = 1; }
-    else { SF = 0; }
-    if (result == 0) { ZF = 1; }
-    else { ZF = 0; }
-    temp2 += CF;  // Adding the carry for further EFLAGS inspection
-    if (1 & ((temp1 & temp2 & ~result) | (~temp1 & ~temp2 & result) >> 63)) { CF = 1; }
-    else { CF = 0; }
-    if ((temp1 < 0 && temp2 > INT_MAX - temp1) ||
-        (temp1 > 0 && temp2 < INT_MAX - temp1)) { OF = 1; }
-    else { OF = 0; }
-    ALUout = result;
+    int mask;
+    if (OpMaskSource == Mask8l)
+    {
+        mask = 7;
+        char temp1 = (char)ALUin1;
+        char temp2 = (char)ALUin2;
+        char result = temp1 + temp2 + CF;
+        if ((result >> mask) & 1) SF = 1;
+        else SF = 0;
+        if (result == 0) ZF = 1;
+        else ZF = 0;
+        temp2 += CF;
+        //unsigned
+        if ((unsigned char)temp1 > Mask8l - (unsigned char)temp2) CF = 1;
+        else CF = 0;
+        //signed
+        if (temp1 < 0 == temp2 < 0 && (char)(temp1 + temp2) < 0 != temp1 < 0) OF = 1;
+        else OF = 0;
+        ALUout = result;
+    }
+    //
+    else if (OpMaskSource == Mask16)
+    {
+        mask = 15;
+        short int temp1 = (short int)ALUin1;
+        short int temp2 = (short int)ALUin2;
+        short int result = temp1 + temp2 + CF;
+        if ((result >> mask) & 1) SF = 1;
+        else SF = 0;
+        if (result == 0) ZF = 1;
+        else ZF = 0;
+        temp2 += CF;
+        //unsigned
+        if ((unsigned short int)temp1 > Mask16 - (unsigned short int)temp2) CF = 1;
+        else CF = 0;
+        //signed
+        if (temp1 < 0 == temp2 < 0 && (short int)(temp1 + temp2) < 0 != temp1 < 0) OF = 1;
+        else OF = 0;
+        ALUout = result;
+    }
+    //
+    else if (OpMaskSource == 32)
+    {
+        mask = 31;
+        int temp1 = (int)ALUin1;
+        int temp2 = (int)ALUin2;
+        int result = temp1 + temp2 + CF;
+        if ((result >> mask) & 1) SF = 1;
+        else SF = 0;
+        if (result == 0) ZF = 1;
+        else ZF = 0;
+        temp2 += CF;
+        //unsigned
+        if ((unsigned int)temp1 > Mask32 - (unsigned int)temp2) CF = 1;
+        else CF = 0;
+        //signed
+        if (temp1 < 0 == temp2 < 0 && (int)(temp1 + temp2) < 0 != temp1 < 0) OF = 1;
+        else OF = 0;
+        ALUout = result;
+    }
+    else if (OpMaskSource == 64)
+    {
+        mask = 7;
+        long long int temp1 = ALUin1;
+        long long int temp2 = ALUin2;
+        long long int result = temp1 + temp2 + CF;
+        if ((result >> mask) & 1) SF = 1;
+        else SF = 0;
+        if (result == 0) ZF = 1;
+        else ZF = 0;
+        temp2 += CF;
+        //unsigned
+        if ((unsigned long long int)temp1 > Mask64 - (unsigned long long int)temp2) CF = 1;
+        else CF = 0;
+        //signed
+        if (temp1 < 0 == temp2 < 0 && (long long int)(temp1 + temp2) < 0 != temp1 < 0) OF = 1;
+        else OF = 0;
+        ALUout = result;
+    }
+    else {}    
 }
