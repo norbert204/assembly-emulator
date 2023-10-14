@@ -19,7 +19,8 @@ long long int ReadMem(long long int address, int size)
                 toreturn |= (long long int)(((long long int)(current->byte)<<(i*8)));
                 if (!current->next) break;
                 current = current->next;
-                if (current->addr != address + (i+1))
+                if (size == 1);
+                else if (current->addr != address + (i+1))
                 {
                     Run = 0;
                     fprintf(stderr, "Memory read error! Not following address!");
@@ -84,13 +85,13 @@ void SaveState()
     fprintf(fp, "%llX", (RSP - RSPinit));
     fprintf(fp, "(\t");
 
-    for (int i = RSPinit - 1; i >= RSP; i--)
+    for (int i = 0; i < RSPinit - RSP; i++)
     {
-        fprintf(fp, "%X\t", ReadMem(i, 1));
+        fprintf(fp, "%X\t", ReadMem(RSPinit - i, 1));
     }
     
     fprintf(fp, ")\t");
-    fprintf(fp, "%s\n", Mnemonic);
+    fprintf(fp, "%s\n", Assembly);
 
     fclose(fp);
 }
@@ -250,9 +251,8 @@ void setnz(){
         else ALUout = 0;
 }
 void seto(){
-    if (OF = 1) ALUout = 1;
+    if (OF == 1) ALUout = 1;
         else ALUout = 0;
-    
 }
 void setz(){
     if (ZF == 1) ALUout = 1;
@@ -779,7 +779,7 @@ void adc(){
     }
     else if (OpMaskSource == 64)
     {
-        mask = 7;
+        mask = 63;
         long long int temp1 = ALUin1;
         long long int temp2 = ALUin2;
         long long int result = temp1 + temp2 + CF;
