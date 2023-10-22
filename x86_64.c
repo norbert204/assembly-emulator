@@ -82,12 +82,12 @@ void SaveState()
     fprintf(fp, "%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%X\t%X\t%X\t%X\t",
                   R10,  R11,  R12,  R13,  R14,  R15, CF, OF, SF, ZF);
 
-    fprintf(fp, "%llX", (RSP - RSPinit));
+    fprintf(fp, "%llX", RSP - RSPinit);
     fprintf(fp, "(\t");
 
     for (int i = 0; i < RSPinit - RSP; i++)
     {
-        fprintf(fp, "%X\t", ReadMem(RSPinit - i, 1));
+        fprintf(fp, "%llX\t", ReadMem(RSPinit - i, 1));
     }
     
     fprintf(fp, ")\t");
@@ -101,50 +101,86 @@ void Execute(){
     /* --- JUMP INSTRUCTIONS ---*/
 
     if (!strcmp(Mnemonic, "ja")) ja();
+        return;
     if (!strcmp(Mnemonic, "jae")) jae();
+        return;
     if (!strcmp(Mnemonic, "jb")) jb();
+        return;
     if (!strcmp(Mnemonic, "jbe")) jbe();
+        return;
     if (!strcmp(Mnemonic, "jc")) jc();
+        return;
     if (!strcmp(Mnemonic, "je")) je();
+        return;
     if (!strcmp(Mnemonic, "jg")) jg();
+        return;
     if (!strcmp(Mnemonic, "jge")) jge();
+        return;
     if (!strcmp(Mnemonic, "jl")) jl();
+        return;
     if (!strcmp(Mnemonic, "jle")) jle();
+        return;
     if (!strcmp(Mnemonic, "jmp")) jmp();
+        return;
     if (!strcmp(Mnemonic, "jnc")) jnc();
+        return;
     if (!strcmp(Mnemonic, "jne")) jne();
+        return;
     if (!strcmp(Mnemonic, "jnz")) jnz();
+        return;
     if (!strcmp(Mnemonic, "jz")) jz();
+        return;
 
     /* --- SET INSTRUCTIONS --- */
 
     if (!strcmp(Mnemonic, "seta")) seta();
+        return;
     if (!strcmp(Mnemonic, "setae")) setae();
+        return;
     if (!strcmp(Mnemonic, "setb")) setb();
+        return;
     if (!strcmp(Mnemonic, "setbe")) setbe();
+        return;
     if (!strcmp(Mnemonic, "setc")) setc();
+        return;
     if (!strcmp(Mnemonic, "sete")) sete();
+        return;
     if (!strcmp(Mnemonic, "setg")) setg();
+        return;
     if (!strcmp(Mnemonic, "setge")) setge();
+        return;
     if (!strcmp(Mnemonic, "setl")) setl();
+        return;
     if (!strcmp(Mnemonic, "setle")) setle();
+        return;
     if (!strcmp(Mnemonic, "setnc")) setnc();
+        return;
     if (!strcmp(Mnemonic, "setne")) setne();
+        return;
     if (!strcmp(Mnemonic, "setnz")) setnz();
+        return;
     if (!strcmp(Mnemonic, "setz")) setz();
+        return;
 
     /* --- SHIFT AND ROTATE INSTRUCTIONS --- */
 
     if(!strcmp(Mnemonic, "rol")) rol();
+        return;
     if(!strcmp(Mnemonic, "ror")) ror();
+        return;
     if(!strcmp(Mnemonic, "sal")) sal();
+        return;
     if(!strcmp(Mnemonic, "sar")) sar();
+        return;
     if(!strcmp(Mnemonic, "shl")) shl();
+        return;
     if(!strcmp(Mnemonic, "shr")) shr();
+        return;
 
     /* --- CARRY INSTRUCTIONS --- */
     
     if (!strcmp(Mnemonic, "adc")) adc();
+        return;
 
 }
 
