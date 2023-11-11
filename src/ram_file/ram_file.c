@@ -20,20 +20,16 @@ void set_state(char *line, segment *seg, FILE *out)
         *seg = TEXT;
         fprintf(out, ".text\n");
     }
-    else if (strstr(line, ".rodata"))
+    else if (strstr(line, ".data")
+        || strstr(line, ".rodata")
+        || strstr(line, ".bss")
+        || strstr(line, "rodata"))
     {
-        *seg = RODATA;
-        fprintf(out, ".rodata\n");
-    }
-    else if (strstr(line, ".bss"))
-    {
-        *seg = BSS;
-        fprintf(out, ".bss\n");
-    }
-    else if (strstr(line, ".data"))
-    {
+        char segment[16];
+        sscanf(line, "Disassembly of section %[^:]", segment); 
+
         *seg = DATA;
-        fprintf(out, ".data\n");
+        fprintf(out, "%s\n", segment);
     }
     else 
     {
