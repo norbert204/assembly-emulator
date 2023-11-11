@@ -1961,32 +1961,32 @@ void Execute()
     
     /* --- SHIFT AND ROTATE INSTRUCTIONS --- */
 
-    if(!strcmp(Mnemonic, "rol"))
+    if (!strcmp(Mnemonic, "rol"))
     {
         rol();
         return;
     }
-    if(!strcmp(Mnemonic, "ror"))
+    if (!strcmp(Mnemonic, "ror"))
     {
         ror();
         return;
     }
-    if(!strcmp(Mnemonic, "sal"))
+    if (!strcmp(Mnemonic, "sal"))
     {
         sal();
         return;
     }
-    if(!strcmp(Mnemonic, "sar"))
+    if (!strcmp(Mnemonic, "sar"))
     {
         sar();
         return;
     }
-    if(!strcmp(Mnemonic, "shl"))
+    if (!strcmp(Mnemonic, "shl"))
     {
         shl();
         return;
     }
-    if(!strcmp(Mnemonic, "shr"))
+    if (!strcmp(Mnemonic, "shr"))
     {
         shr();
         return;
