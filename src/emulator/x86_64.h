@@ -104,6 +104,11 @@ void Execute();
 // Call the required procedure for the proper operation
 // Update the Run flag (based on RSP and RSPinit)
 
+/* JUMP INSTRUCTIONS : */ void ja(), jae(), jb(), jbe(), jc(), je(), jg(), jge(), jl(), jle(), jmp(), jnc(), jne(), jnz(), jz();
+/* SET INSTRUCTIONS : */ void seta(), setae(), setb(), setbe(), setc(), sete(), setg(), setge(), setl(), setle(), setnc(), setne(), setnz(), seto(), setz();
+/* SHIFT AND ROTATE INSTRUCTIONS : */ void rol(), ror(), rcl(), rcr(), sal(), sar(), shl(), shr();
+/* CARRY INSTRUCIONS : */ void adc();
+
 void WriteBack();
 // If necessary update the destination operand (and/or other registers) by ALUout
 
