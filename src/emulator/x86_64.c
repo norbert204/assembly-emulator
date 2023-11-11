@@ -1953,6 +1953,11 @@ void Execute()
         setnz();
         return;
     }
+    if (!strcmp(Mnemonic, "seto"))
+    {
+        seto();
+        return;
+    }
     if (!strcmp(Mnemonic, "setz"))
     {
         setz();
@@ -1969,6 +1974,16 @@ void Execute()
     if (!strcmp(Mnemonic, "ror"))
     {
         ror();
+        return;
+    }
+    if (!strcmp(Mnemonic, "rcl"))
+    {
+        rcl();
+        return;
+    }
+    if (!strcmp(Mnemonic, "rcr"))
+    {
+        rcr();
         return;
     }
     if (!strcmp(Mnemonic, "sal"))
