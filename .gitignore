@@ -51,5 +51,8 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+# UI
+ui/__pycache__/
+
 # Other type of files
 *.txt
