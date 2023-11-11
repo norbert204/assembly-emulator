@@ -1762,7 +1762,7 @@ void Execute()
     }
     if (!strcmp(Mnemonic, "or"))
     {
-        or ();
+        or();
         return;
     }
     if (!strcmp(Mnemonic, "test"))
@@ -1805,87 +1805,195 @@ void Execute()
 
     /* --- JUMP INSTRUCTIONS ---*/
 
-    if (!strcmp(Mnemonic, "ja")) ja();
+    if (!strcmp(Mnemonic, "ja"))
+    {
+        ja();
         return;
-    if (!strcmp(Mnemonic, "jae")) jae();
+    }
+    if (!strcmp(Mnemonic, "jae"))
+    {
+        jae();
         return;
-    if (!strcmp(Mnemonic, "jb")) jb();
+    }
+    if (!strcmp(Mnemonic, "jb"))
+    {
+        jb();
         return;
-    if (!strcmp(Mnemonic, "jbe")) jbe();
+    }
+    if (!strcmp(Mnemonic, "jbe"))
+    {
+        jbe();
         return;
-    if (!strcmp(Mnemonic, "jc")) jc();
+    }
+    if (!strcmp(Mnemonic, "jc"))
+    {
+        jc();
         return;
-    if (!strcmp(Mnemonic, "je")) je();
+    }
+    if (!strcmp(Mnemonic, "je"))
+    {
+        je();
         return;
-    if (!strcmp(Mnemonic, "jg")) jg();
+    }
+    if (!strcmp(Mnemonic, "jg"))
+    {
+        jg();
         return;
-    if (!strcmp(Mnemonic, "jge")) jge();
+    }
+    if (!strcmp(Mnemonic, "jge"))
+    {
+        jge();
         return;
-    if (!strcmp(Mnemonic, "jl")) jl();
+    }
+    if (!strcmp(Mnemonic, "jl"))
+    {
+        jl();
         return;
-    if (!strcmp(Mnemonic, "jle")) jle();
+    }
+    if (!strcmp(Mnemonic, "jle"))
+    {
+        jle();
         return;
-    if (!strcmp(Mnemonic, "jmp")) jmp();
+    }
+    if (!strcmp(Mnemonic, "jmp"))
+    {
+        jmp();
         return;
-    if (!strcmp(Mnemonic, "jnc")) jnc();
+    }
+    if (!strcmp(Mnemonic, "jnc"))
+    {
+        jnc();
         return;
-    if (!strcmp(Mnemonic, "jne")) jne();
+    }
+    if (!strcmp(Mnemonic, "jne"))
+    {
+        jne();
         return;
-    if (!strcmp(Mnemonic, "jnz")) jnz();
+    }
+    if (!strcmp(Mnemonic, "jnz"))
+    {
+        jnz();
         return;
-    if (!strcmp(Mnemonic, "jz")) jz();
+    }
+    if (!strcmp(Mnemonic, "jz"))
+    {
+        jz();
         return;
+    }
 
     /* --- SET INSTRUCTIONS --- */
 
-    if (!strcmp(Mnemonic, "seta")) seta();
+    if (!strcmp(Mnemonic, "seta"))
+    {
+        seta();
         return;
-    if (!strcmp(Mnemonic, "setae")) setae();
+    }
+    if (!strcmp(Mnemonic, "setae"))
+    {
+        setae();
         return;
-    if (!strcmp(Mnemonic, "setb")) setb();
+    }
+    if (!strcmp(Mnemonic, "setb"))
+    {
+        setb();
         return;
-    if (!strcmp(Mnemonic, "setbe")) setbe();
+    }
+    if (!strcmp(Mnemonic, "setbe"))
+    {
+        setbe();
         return;
-    if (!strcmp(Mnemonic, "setc")) setc();
+    }
+    if (!strcmp(Mnemonic, "setc"))
+    {
+        setc();
         return;
-    if (!strcmp(Mnemonic, "sete")) sete();
+    }
+    if (!strcmp(Mnemonic, "sete"))
+    {
+        sete();
         return;
-    if (!strcmp(Mnemonic, "setg")) setg();
+    }
+    if (!strcmp(Mnemonic, "setg"))
+    {
+        setg();
         return;
-    if (!strcmp(Mnemonic, "setge")) setge();
+    }
+    if (!strcmp(Mnemonic, "setge"))
+    {
+        setge();
         return;
-    if (!strcmp(Mnemonic, "setl")) setl();
+    }
+    if (!strcmp(Mnemonic, "setl"))
+    {
+        setl();
         return;
-    if (!strcmp(Mnemonic, "setle")) setle();
+    }
+    if (!strcmp(Mnemonic, "setle"))
+    {
+        setle();
         return;
-    if (!strcmp(Mnemonic, "setnc")) setnc();
+    }
+    if (!strcmp(Mnemonic, "setnc"))
+    {
+        setnc();
         return;
-    if (!strcmp(Mnemonic, "setne")) setne();
+    }
+    if (!strcmp(Mnemonic, "setne"))
+    {
+        setne();
         return;
-    if (!strcmp(Mnemonic, "setnz")) setnz();
+    }
+    if (!strcmp(Mnemonic, "setnz"))
+    {
+        setnz();
         return;
-    if (!strcmp(Mnemonic, "setz")) setz();
+    }
+    if (!strcmp(Mnemonic, "setz"))
+    {
+        setz();
         return;
+    }
     
     /* --- SHIFT AND ROTATE INSTRUCTIONS --- */
 
-    if(!strcmp(Mnemonic, "rol")) rol();
+    if(!strcmp(Mnemonic, "rol"))
+    {
+        rol();
         return;
-    if(!strcmp(Mnemonic, "ror")) ror();
+    }
+    if(!strcmp(Mnemonic, "ror"))
+    {
+        ror();
         return;
-    if(!strcmp(Mnemonic, "sal")) sal();
+    }
+    if(!strcmp(Mnemonic, "sal"))
+    {
+        sal();
         return;
-    if(!strcmp(Mnemonic, "sar")) sar();
+    }
+    if(!strcmp(Mnemonic, "sar"))
+    {
+        sar();
         return;
-    if(!strcmp(Mnemonic, "shl")) shl();
+    }
+    if(!strcmp(Mnemonic, "shl"))
+    {
+        shl();
         return;
-    if(!strcmp(Mnemonic, "shr")) shr();
+    }
+    if(!strcmp(Mnemonic, "shr"))
+    {
+        shr();
         return;
+    }
     
     /* --- CARRY INSTRUCTIONS --- */
     
-    if (!strcmp(Mnemonic, "adc")) adc();
+    if (!strcmp(Mnemonic, "adc"))
+    {
+        adc();
         return;
+    }
 
     printf("Error! Instruction not implemented (%s)\n", Mnemonic);
     //Run = 0;
