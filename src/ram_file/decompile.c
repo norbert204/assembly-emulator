@@ -47,7 +47,7 @@ void decompile_executable(const char *path, const char *output)
     }
 
     char command[1024];
-    sprintf(command, "objdump %s -D -M intel > %s", path, output);
+    sprintf(command, "objdump %s -D -M intel -z > %s", path, output);
 
     system(command);
 }
