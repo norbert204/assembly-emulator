@@ -132,23 +132,26 @@ void SaveState()
     }
 
     fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t",
-            RIP, RAX, RBX, RCX, RDX, RDI, RSI, RSP, RBP, R8, R9);
+                  RIP,  RAX,  RBX,  RCX,  RDX,  RDI,  RSI,  RSP,  RBP,  R8,   R9);
     fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\t%d\t",
-            R10, R11, R12, R13, R14, R15, CF, OF, SF, ZF);
+                  R10,  R11,  R12,  R13,  R14,  R15, CF, OF, SF, ZF);
 
-    fprintf(fp, "%lld", (RSP - RSPinit));
-    fprintf(fp, "(\t");
+    fprintf(fp, "%lld", (RSPinit - RSP));
 
-    for (int i = RSPinit - 1; i >= RSP; i--)
+    for (int i = 0 ; i < RSPinit - RSP ; i++)
     {
-        fprintf(fp, "%c\t", (char)ReadMem(i, 1));
+        fprintf(fp, "\t%d", ReadMem(RSPinit-i, 1));
     }
 
-    fprintf(fp, ")\t");
-    fprintf(fp, "%s\n", Assembly);
+    fprintf(fp, "\t");
+
+    fprintf(fp, "%s\t", MachineCode[0] == '\0' ? "-" : MachineCode);
+
+    fprintf(fp, "%s\n", Assembly[0] == '\0' ? "BEGIN" : Assembly);
 
     fclose(fp);
 }
+
 
 void InstructionFetch()
 {
@@ -172,12 +175,13 @@ void InstructionFetch()
         }
         tmp = tmp->next;
     }
-    if (RIP != RSPinit)
-        fprintf(stderr, "Error! Instruction not found! (0x%llx)\n", RIP);
-    Run = 0;
+    
 }
 void Init()
 {
+    // Quick fix to reset the output file
+    remove("/tmp/asemu_output");
+
     RAX = 0x4198694;
     RBX = 0x4198736;
     RCX = 0x4198736;
@@ -469,7 +473,12 @@ void and ()
 }
 void call()
 {
-    WriteMem(RSP, 8, RIP);
+    if (RSP < RSPinit) 
+    {
+        fprintf(stderr, "Error! RSP <= RSPinit(0x%llx < 0x%llx)\n", RSP, RSPinit); // ret javítása, oda kell tenni ezt az ellenőrzést, ugyanugy stacpointerbol adod hibak
+        Run = 0;
+    }
+    WriteMem(RSP-8, 8, RIP); // a stack pointer oda mutat ahol már van elem, nem az első üres helyre, ret, pop, push, call javítás!!
     RSP -= 8;
     RIP = ALUin1;
     return;
@@ -601,16 +610,31 @@ void assembly_div()
     }
     else if (OpMaskSource == Mask32)
     {
+        if (ALUin1 & 80000000 || ALUin2 & 80000000)
+        {
+            fprintf(stderr, " Negative operand of unsigned division.\n");
+            return;
+        }
         RAX = (ALUin1/ALUin2) & Mask32;
         RDX = (ALUin1%ALUin2) & Mask32;
     }
     else if (OpMaskSource == Mask16)
     {
+        if (ALUin1 & 8000 || ALUin2 & 8000)
+        {
+            fprintf(stderr, " Negative operand of unsigned division.\n");
+            return;
+        }
         RAX = (ALUin1/ALUin2) & Mask16;
         RDX = (ALUin1%ALUin2) & Mask16;
     }
     else if (OpMaskSource == Mask8l)
     {
+        if (ALUin1 & 80 || ALUin2 & 80)
+        {
+            fprintf(stderr, " Negative operand of unsigned division.\n");
+            return;
+        }
         RAX = (ALUin1/ALUin2) & Mask8l;
         RDX = (ALUin1%ALUin2) & Mask8l;
     }
@@ -755,7 +779,7 @@ void imul()
 }
 void neg()
 {
-    ALUin2 = ~ALUin1;
+    ALUin2 = ~ALUin1; 
     ALUin1 = 1;
     add();
     return;
@@ -884,7 +908,17 @@ void sbb()
 }
 void ret()
 {
-    RIP = RSP;
+    if (RSP < RSPinit) 
+    {
+        fprintf(stderr, "Error! RSP < RSPinit(0x%llx < 0x%llx)\n", RSP, RSPinit); // ret javítása, oda kell tenni ezt az ellenőrzést, ugyanugy stacpointerbol adod hibak
+        Run = 0;
+    }
+    if (RSP == RSPinit)
+    {
+        Run = 0;
+        return;
+    }
+    RIP = ReadMem(RSP, 8);
     RSP += 8;
     return;
 }
@@ -909,10 +943,11 @@ void push()
     default:
         break;
     }
-    WriteMem(RSP, size, ALUin1);
-    // printf("%llX címre pusholt elem %d bájt hosszan: %llX\n", RSP, size, ALUin1);
-
     RSP -= size;
+    WriteMem(RSP+1, size, ALUin1);
+    //printf("%llX címre pusholt elem %d bájt hosszan: %llX\n", RSP, size, ALUin1);
+
+    
     // printf("RSP: %llX\n", RSP);
     return;
 }
@@ -936,7 +971,7 @@ void pop()
     default:
         break;
     }
-    ALUout = ReadMem(RSP + size, size);
+    ALUout = ReadMem(RSP+1, size);
     // printf("%llX címről popolt elem %d bájt hosszan: %llX\n", RSP+size, size, ALUout);
     RSP += size;
     // printf("RSP: %llX\n", RSP);
@@ -1166,6 +1201,143 @@ void shr(){
     else{ CF = bitState; }
     if (ALUin2 == 1) { OF = (ALUin1 >> 63) & 1; }
 }
+void adc(){
+    long long int temp1 = ALUout;
+    long long int temp2 = ALUin1;
+    long long int result = ALUout + ALUin1 + CF;
+    if ((result >> 63) & 1) { SF = 1; }
+    else { SF = 0; }
+    if (result == 0) { ZF = 1; }
+    else { ZF = 0; }
+    temp2 += CF;  // Adding the carry for further EFLAGS inspection
+    if (1 & ((temp1 & temp2 & ~result) | (~temp1 & ~temp2 & result) >> 63)) { CF = 1; }
+    else { CF = 0; }
+    if ((temp1 < 0 && temp2 > __INT_MAX__ - temp1) ||
+        (temp1 > 0 && temp2 < __INT_MAX__ - temp1)) { OF = 1; }
+    else { OF = 0; }
+    ALUout = result;
+}
+void rcl(){
+    if (OpMaskDest == Mask8l)
+    {
+        int temp = 0;
+        for (int i = 0; i < ALUin2; i++)
+        {
+            temp = CF;
+            CF = ALUin1 >> 7 & 1;
+            ALUout = (ALUin1 << 1) | (((unsigned long long int)ALUin1) >> 7);
+            if (temp == 1) ALUout |= (long long int)1;
+            else ALUout &= ~((long long int)1);
+            ALUin1 = ALUout;
+        }
+        OF = CF ^ ((ALUout >> 7) & 1);
+    }
+    if (OpMaskDest == Mask16)
+    {
+        int temp = 0;
+        for (int i = 0; i < ALUin2; i++)
+        {
+            temp = CF;
+            CF = ALUin1 >> 15 & 1;
+            ALUout = (ALUin1 << 1) | (((unsigned long long int)ALUin1) >> 15);
+            if (temp == 1) ALUout |= (long long int)1;
+            else ALUout &= ~((long long int)1);
+            ALUin1 = ALUout;
+        }
+        OF = CF ^ ((ALUout >> 15) & 1);
+    }
+    if (OpMaskDest == Mask32)
+    {
+        int temp = 0;
+        for (int i = 0; i < ALUin2; i++)
+        {
+            temp = CF;
+            CF = ALUin1 >> 31 & 1;
+            ALUout = (ALUin1 << 1) | (((unsigned long long int)ALUin1) >> 31);
+            if (temp == 1) ALUout |= (long long int)1;
+            else ALUout &= ~((long long int)1);
+            ALUin1 = ALUout;
+        }
+        OF = CF ^ ((ALUout >> 31) & 1);
+    }
+    if (OpMaskDest == Mask64)
+    {
+        int temp = 0;
+        for (int i = 0; i < ALUin2; i++)
+        {
+            temp = CF;
+            CF = ALUin1 >> 63 & 1;
+            ALUout = (ALUin1 << 1) | (((unsigned long long int)ALUin1) >> 63);
+            if (temp == 1) ALUout |= (long long int)1;
+            else ALUout &= ~((long long int)1);
+            ALUin1 = ALUout;
+        }
+        OF = CF ^ ((ALUout >> 63) & 1);
+    }
+}
+void rcr(){
+    if (OpMaskDest == Mask8l)
+    {
+        unsigned int temp;
+        for (int i = 0; i < ALUin2; i++)
+        {
+            temp = CF;
+            CF = ALUin1 & 1;
+            ALUout = (ALUin1 >> 1) | (ALUin1 << 7);
+            if (temp == 1) ALUout |= (long long int)1 << 7;
+            else ALUout &= ~((long long int)1 << 7);
+            ALUin1 = ALUout;        
+        }
+        OF = ((ALUout >> 7) & 1) ^ ((ALUout >> 6) & 1);
+    }
+    if (OpMaskDest == Mask16)
+    {
+        unsigned int temp;
+        for (int i = 0; i < ALUin2; i++)
+        {
+            temp = CF;
+            CF = ALUin1 & 1;
+            ALUout = (ALUin1 >> 1) | (ALUin1 << 15);
+            if (temp == 1) ALUout |= (long long int)1 << 15;
+            else ALUout &= ~((long long int)1 << 15);
+            ALUin1 = ALUout;
+        }
+        OF = ((ALUout >> 15) & 1) ^ ((ALUout >> 14) & 1);
+    }
+    if (OpMaskDest == Mask32)
+    {
+        unsigned int temp;
+        for (int i = 0; i < ALUin2; i++)
+        {
+            temp = CF;
+            CF = ALUin1 & 1;
+            ALUout = (ALUin1 >> 1) | (ALUin1 << 31);
+            if (temp == 1) ALUout |= (long long int)1 << 31;
+            else ALUout &= ~((long long int)1 << 31);
+            ALUin1 = ALUout;        
+        }
+        OF = ((ALUout >> 31) & 1) ^ ((ALUout >> 30) & 1);
+    }
+    if (OpMaskDest == Mask32)
+    {
+        unsigned int temp;
+        for (int i = 0; i < ALUin2; i++)
+        {
+            temp = CF;
+            CF = ALUin1 & 1;
+            ALUout = (ALUin1 >> 1) | (ALUin1 << 63);
+            if (temp == 1) ALUout |= (long long int)1 << 63;
+            else ALUout &= ~((long long int)1 << 63);
+            ALUin1 = ALUout;        
+        }
+        OF = ((ALUout >> 63) & 1) ^ ((ALUout >> 62) & 1);
+    }
+}
+void seto(){
+    if (OF = 1) ALUout = 1;
+        else ALUout = 0;
+    
+}
 void Execute()
 {
     if (RSP > RSPinit)
@@ -1176,6 +1348,11 @@ void Execute()
     if (!strcmp(Mnemonic, "add"))
     {
         add();
+        return;
+    }
+    if (!strcmp(Mnemonic, "adc"))
+    {
+        adc();
         return;
     }
     if (!strcmp(Mnemonic, "addsd"))
@@ -1497,6 +1674,11 @@ void Execute()
         setnz();
         return;
     }
+    if (!strcmp(Mnemonic, "seto"))
+    {
+        seto();
+        return;
+    }
     if (!strcmp(Mnemonic, "setz"))
     {
         setz();
@@ -1510,6 +1692,16 @@ void Execute()
     if (!strcmp(Mnemonic, "ror"))
     {
         ror();
+        return;
+    }
+    if (!strcmp(Mnemonic, "rcl"))
+    {
+        rcl();
+        return;
+    }
+    if (!strcmp(Mnemonic, "rcr"))
+    {
+        rcr();
         return;
     }
     if (!strcmp(Mnemonic, "sal"))
@@ -2075,7 +2267,7 @@ int FetchLiteral(char *Expression, long long int *Destination)
 {
     if (Expression[1] == 'x')
     {
-        *Destination = strtol(strrchr(Operand2, 120) + 1, NULL, 16);
+        *Destination = strtol(strrchr(Expression, 120) + 1, NULL, 16);
         return 1;
     }
     else if (strtol(Expression, NULL, 16))

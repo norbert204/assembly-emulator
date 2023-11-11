@@ -45,16 +45,21 @@ void emulation()
 
     while(Run)
     {
-          SaveState();
-          InstructionFetch();
-          printf("%d --- %s\n", count, Mnemonic);
-          OperandFetch();
-          Execute();
-          WriteBack();
-          count++;
+        SaveState();
+        InstructionFetch();
+        printf("%d --- %s\n", count, Mnemonic);
+        OperandFetch();
+        Execute();
+        WriteBack();
+        count++;
     }
 
     Fini();
+}
+
+void print_information_for_gui()
+{
+    puts("asemu");
 }
 
 int main(int argc, char *argv[])
@@ -71,19 +76,25 @@ int main(int argc, char *argv[])
     // Handle the optional parameters.
     for (int i = 0; i < argc; i++)
     {
-        if (strstr(argv[i], "-c"))
+        if (!strcmp(argv[i], "-c"))
         {
             print_credits();
             exit(0);
         }
 
-        if (strstr(argv[i], "-h"))
+        if (!strcmp(argv[i], "-h"))
         {
             print_help();
             exit(0);
         }
 
-        if (strstr(argv[i], "-e"))
+        if (!strcmp(argv[i], "--gui-info"))
+        {
+            print_information_for_gui();
+            exit(0);
+        }
+
+        if (!strcmp(argv[i], "-e"))
         {
             if (run_state != 0)
             {
@@ -94,7 +105,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (strstr(argv[i], "-r"))
+        if (!strcmp(argv[i], "-r"))
         {
             if (run_state != 0)
             {
