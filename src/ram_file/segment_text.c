@@ -67,6 +67,14 @@ void clean_operand(char *operand, const size_t size)
 
         sprintf(operand, "%s PTR %s", type, address);
     }
+    else 
+    {
+        int colon = str_index_of(operand, ':');
+        if (colon != -1)
+        {
+            strncpy(operand, operand + colon + 1, size);
+        }
+    }
 }
 
 void clean_assembly(char *assembly, const size_t size)
