@@ -63,16 +63,19 @@ long long int ReadMem(long long int address, int size)
         {
             for (int i = 0; i < size; i++)
             {                
-                toreturn |= (long long int)(((long long int)(current->byte)<<(i*8)));
-                if (!current->next) break;
-                current = current->next;
-                if (size == 1);
-                else if (current->addr != address + (i+1))
+                if (current->addr != address + i)
                 {
                     Run = 0;
                     fprintf(stderr, "Memory read error! Not following address!");
                     exit(42);
                 }                
+
+                toreturn |= (long long int)(((long long int)(current->byte)<<(i*8)));
+
+                if (current->next == NULL)
+                    break;
+
+                current = current->next;
             }
             return toreturn;
         }
