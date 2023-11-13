@@ -301,7 +301,7 @@ void OperandFetch()
                 OpMaskDest = Mask8h;
             }
         }
-        if (Operand1[0] == 'Q')
+        else if (Operand1[0] == 'Q')
         {
             ResolveAddress(&Address, Operand1);
             ALUin1 = ReadMem(Address, 8);
