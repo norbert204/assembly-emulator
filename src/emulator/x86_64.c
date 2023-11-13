@@ -220,7 +220,7 @@ void Init()
         {
             CodeSegment = 1;
         }
-        else if (strstr(line, ".rodata") || strstr(line, ".data") || strstr(line, ".bss"))
+        else if (strstr(line, ".rodata") || strstr(line, ".data") || strstr(line, ".bss") || strstr(line, "rodata"))
         {
             CodeSegment = 0;
         }
