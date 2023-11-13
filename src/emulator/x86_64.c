@@ -127,23 +127,22 @@ void SaveState()
         exit(32);
     }
 
-    fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t",
+    fprintf(fp, "%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t",
                   RIP,  RAX,  RBX,  RCX,  RDX,  RDI,  RSI,  RSP,  RBP,  R8,   R9);
-    fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\t%d\t",
+    fprintf(fp, "%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%X\t%X\t%X\t%X\t",
                   R10,  R11,  R12,  R13,  R14,  R15, CF, OF, SF, ZF);
 
-    fprintf(fp, "%lld", (RSPinit - RSP));
+    fprintf(fp, "%llX", (RSPinit - RSP));
+    fprintf(fp, "(\t");
 
-    for (int i = 0; i < RSPinit - RSP; i++)
+    for (int i = 0 ; i < RSPinit - RSP ; i++)
     {
-        fprintf(fp, "\t%d", ReadMem(RSPinit-i, 1));
+        //printf("¶¶¶¶¶¶¶ %llx ¶¶¶¶¶¶¶\n", RSPinit-i);
+        fprintf(fp, "%X", ReadMem(RSPinit-i, 1));
     }
-
-    fprintf(fp, "\t");
-
-    fprintf(fp, "%s\t", MachineCode[0] == '\0' ? "-" : MachineCode);
-
-    fprintf(fp, "%s\n", Assembly[0] == '\0' ? "BEGIN" : Assembly);
+    
+    fprintf(fp, ")\t");
+    fprintf(fp, "%s\n", Assembly);
 
     fclose(fp);
 }
@@ -301,7 +300,7 @@ void OperandFetch()
                 OpMaskDest = Mask8h;
             }
         }
-        else if (Operand1[0] == 'Q')
+        if (Operand1[0] == 'Q')
         {
             ResolveAddress(&Address, Operand1);
             ALUin1 = ReadMem(Address, 8);
@@ -469,9 +468,9 @@ void and ()
 }
 void call()
 {
-    if (RSP < RSPinit) 
+    if (RSP > RSPinit) 
     {
-        fprintf(stderr, "Error! RSP <= RSPinit(0x%llx < 0x%llx)\n", RSP, RSPinit); // ret javítása, oda kell tenni ezt az ellenőrzést, ugyanugy stacpointerbol adod hibak
+        fprintf(stderr, "Error! RSP >= RSPinit(0x%llx < 0x%llx)\n", RSP, RSPinit); // ret javítása, oda kell tenni ezt az ellenőrzést, ugyanugy stacpointerbol adod hibak
         Run = 0;
     }
     WriteMem(RSP-8, 8, RIP); // a stack pointer oda mutat ahol már van elem, nem az első üres helyre, ret, pop, push, call javítás!!
@@ -669,7 +668,15 @@ void movabs()
 }
 void mov()
 {
-    ALUout = ALUin2;
+    long long int tmp, mask;
+    if (FetchRegister(Operand1, &tmp, &mask))
+    {
+        ALUout = ALUin2;
+    }
+    else
+    {
+        WriteMem(ALUin1+1, WriteBackSize, ALUin2);
+    }
     return;
 }
 void movsx()
@@ -904,9 +911,9 @@ void sbb()
 }
 void ret()
 {
-    if (RSP < RSPinit) 
+    if (RSP > RSPinit) 
     {
-        fprintf(stderr, "Error! RSP < RSPinit(0x%llx < 0x%llx)\n", RSP, RSPinit); // ret javítása, oda kell tenni ezt az ellenőrzést, ugyanugy stacpointerbol adod hibak
+        fprintf(stderr, "Error! RSP > RSPinit(0x%llx < 0x%llx)\n", RSP, RSPinit); // ret javítása, oda kell tenni ezt az ellenőrzést, ugyanugy stacpointerbol adod hibak
         Run = 0;
     }
     if (RSP == RSPinit)
@@ -1761,6 +1768,13 @@ void Execute()
     if (!strcmp(Mnemonic, "sub"))
     {
         sub();
+        if (!strcmp(Operand1, "rsp"))
+        {
+            for(int i = 0; i<=ALUin2; i++)
+            {
+                WriteMem(RSP-i, 1, 0);
+            }
+        }
         return;
     }
     if (!strcmp(Mnemonic, "sbb"))
