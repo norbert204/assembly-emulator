@@ -127,22 +127,23 @@ void SaveState()
         exit(32);
     }
 
-    fprintf(fp, "%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t",
+    fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t",
                   RIP,  RAX,  RBX,  RCX,  RDX,  RDI,  RSI,  RSP,  RBP,  R8,   R9);
-    fprintf(fp, "%llX\t%llX\t%llX\t%llX\t%llX\t%llX\t%X\t%X\t%X\t%X\t",
+    fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\t%d\t",
                   R10,  R11,  R12,  R13,  R14,  R15, CF, OF, SF, ZF);
 
-    fprintf(fp, "%llX", (RSPinit - RSP));
-    fprintf(fp, "(\t");
+    fprintf(fp, "%lld", (RSPinit - RSP));
 
-    for (int i = 0 ; i < RSPinit - RSP ; i++)
+    for (int i = 0; i < RSPinit - RSP; i++)
     {
-        //printf("¶¶¶¶¶¶¶ %llx ¶¶¶¶¶¶¶\n", RSPinit-i);
-        fprintf(fp, "%X", ReadMem(RSPinit-i, 1));
+        fprintf(fp, "\t%d", ReadMem(RSPinit-i, 1));
     }
-    
-    fprintf(fp, ")\t");
-    fprintf(fp, "%s\n", Assembly);
+
+    fprintf(fp, "\t");
+
+    fprintf(fp, "%s\t", MachineCode[0] == '\0' ? "-" : MachineCode);
+
+    fprintf(fp, "%s\n", Assembly[0] == '\0' ? "BEGIN" : Assembly);
 
     fclose(fp);
 }
