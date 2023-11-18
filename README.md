@@ -37,7 +37,7 @@ On Ubuntu based systems, these packages are most likely installed already. If no
 
 ```bash
 sudo apt update &&
-sudo apt install git gcc objdump    # TODO: objdump is not the valid package name
+sudo apt install binutils gcc git make
 ```
 
 If you want to use the UI, you'll need to install the following:
