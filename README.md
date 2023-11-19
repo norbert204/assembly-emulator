@@ -1,7 +1,5 @@
 # x86-64 emulator
 
-![gui](.images/gui.png)
-
 The goal of this project is to be able to see how a computer executes a piece of software. The emulator is able to run high level user-space programs that are designed to run on a x86 GNU/Linux system. The project contains a command line emulator, and an optional GUI for easiert understanding of the emulator's output.
 
 The project is our Thesis for the Science Conference of University of Debrecen.
@@ -98,7 +96,7 @@ If you want to run a pre-compiled executable, you can use the following command:
 ./asemu -e <file>
 ```
 
-**NOTE:** The executable must be compiled for x86-64 GNU/Linux support, and must use static-linking for shared libraries.
+**NOTE:** The executable must be compiled for x86-64 Linux support, and must use static-linking for shared libraries.
 
 If you have a premade RAM file for the emulator, you can use it with the following:
 
