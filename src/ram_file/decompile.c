@@ -2,49 +2,54 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <elf.h>
 
-// More information:
-// https://stackoverflow.com/questions/66876343/check-if-file-is-a-binary-executable
-#define REQUIRED_MAGIC_CONSTANT 0x464c457f
-
-bool is_binary_executable(const char *path)
+void is_binary_executable(const char *path)
 {
     if (access(path, F_OK) != 0)
     {
-        fprintf(stderr, "Cannot access specified file! Please ensure that the file exists and has read permission for the current user.");
+        fprintf(stderr, "Cannot access specified file! Please ensure that the file exists and has read permission for the current user.\n");
         exit(1);
     }
 
-    int in = open(path, O_RDONLY);
-    int magic_constant;
+    Elf64_Ehdr elf_header;
 
-    int byte_count = read(in, &magic_constant, 4);
-    close(in);
+    FILE *file = fopen(path, "rb");
 
-    if (byte_count != 4)
+    if (!file)
     {
-        return false;
+        fprintf(stderr, "Cannot read file!\n");
     }
 
-    if (magic_constant != REQUIRED_MAGIC_CONSTANT)
+    fread(&elf_header, sizeof(elf_header), 1, file);
+
+    if (memcmp(elf_header.e_ident, ELFMAG, SELFMAG) != 0)
     {
-        return false;
+        fclose(file);
+        fprintf(stderr, "File is not an ELF binary!\n");
+        exit(1);
     }
 
-    return true;
+    // if (elf_header.e_type != ET_EXEC)
+    // {
+    //     fprintf(stderr, "File is not an executable!\n");
+    //     return false;
+    // }
+
+    if (elf_header.e_machine != EM_X86_64)
+    {
+        fclose(file);
+        fprintf(stderr, "File is not compiled for x86-64 architecture!\n");
+        exit(1);
+    }
 }
 
 void decompile_executable(const char *path, const char *output)
 {
-    bool good = is_binary_executable(path);
-
-    if (!good)
-    {
-        fprintf(stderr, "File is not an executable binary!\n");
-        exit(1);
-    }
+    is_binary_executable(path);
 
     char command[1024];
     sprintf(command, "objdump %s -D -M intel -z > %s", path, output);
