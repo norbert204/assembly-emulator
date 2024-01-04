@@ -908,16 +908,8 @@ void sub()
             OF = 1;
     }
     }
-    while (Sbit * 2 - 1 != OpMaskSource)
-        Sbit <<= 1;
-    if ((ALUout & Sbit) != 0)
-        SF = 1;
-    else
-        SF = 0;
-    if (ALUout == 0)
-        ZF = 1;
-    else
-        ZF = 0;
+    SF = CheckSF(ALUout, OpMaskDest);
+    ZF = CheckZF(ALUout, OpMaskDest);
 }
 void sbb()
 {
