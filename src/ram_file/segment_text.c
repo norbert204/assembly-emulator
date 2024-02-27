@@ -67,6 +67,14 @@ void clean_operand(char *operand, const size_t size)
 
         sprintf(operand, "%s PTR %s", type, address);
     }
+    else 
+    {
+        int colon = str_index_of(operand, ':');
+        if (colon != -1)
+        {
+            strncpy(operand, operand + colon + 1, size);
+        }
+    }
 }
 
 void clean_assembly(char *assembly, const size_t size)
@@ -96,7 +104,7 @@ void clean_assembly(char *assembly, const size_t size)
     memset(operand2, '\0', 32);
     memset(operand3, '\0', 32);
 
-    sscanf(assembly, "%s%*[ ]%[^,\n]%*[,\n]%[^,\n]%*[,\n]%[^\n]", mnemonic, operand1, operand2, operand3);
+    sscanf(assembly, "%31s%*[ \n]%31[^,\n]%*[,\n]%31[^,\n]%*[,\n]%31[^\n]", mnemonic, operand1, operand2, operand3);
 
     clean_operand(operand1, 32);
     clean_operand(operand2, 32);
@@ -180,7 +188,6 @@ void clean_machine_code(char machine_code[], size_t size)
 
 void handle_text_segment(FILE *input, FILE *output)
 {
-    bool found_main = false;
     bool read_values = false;
 
     char line[512];
@@ -196,7 +203,7 @@ void handle_text_segment(FILE *input, FILE *output)
 
     long last_file_pos = ftell(input);
 
-    while (true)
+    while (!feof(input))
     {
         fgets(line, 512, input);
 
@@ -204,16 +211,6 @@ void handle_text_segment(FILE *input, FILE *output)
         {
             fseek(input, last_file_pos, SEEK_SET);
             break;
-        }
-
-        // We don't start handling the code until we've found the main address
-        if (!found_main)
-        {
-            if (strstr(line, MAIN_FUNCTION_NAME))
-            {
-                found_main = true;
-            }
-            continue;
         }
 
         // We have to append the machine code to the last line
