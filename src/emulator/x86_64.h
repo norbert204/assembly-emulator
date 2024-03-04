@@ -24,6 +24,7 @@ extern int CF;                           // carry flag bit of RFLAGS
 extern int SF;                           // sign flag bit of RFLAGS
 extern int ZF;                           // zero flag bit of RFLAGS
 
+
 /* Arithmetic and Logic Unit management */
 extern long long int ALUin1;             // inner register for ALU first input
 extern long long int ALUin2;             // inner register for ALU second input
@@ -130,6 +131,8 @@ void Fini();
 extern long long int *WriteBackDest;
 extern long long int WriteBackAddress;
 extern int WriteBackSize;
+
+
 
 int CheckSF(int Value, long long int Mask);
 int CheckZF(int Value, long long int Mask);

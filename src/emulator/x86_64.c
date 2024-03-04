@@ -53,6 +53,7 @@ long long int *WriteBackDest;
 long long int WriteBackAddress;
 int WriteBackSize;
 
+
 long long int ReadMem(long long int address, int size)
 {
     //Data memory
@@ -128,15 +129,15 @@ void SaveState()
     }
 
     fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t",
-                  RIP,  RAX,  RBX,  RCX,  RDX,  RDI,  RSI,  RSP,  RBP,  R8,   R9);
+                  RIP-InstLength,  RAX,  RBX,  RCX,  RDX,  RDI,  RSI,  RSP,  RBP,  R8,   R9);
     fprintf(fp, "%lld\t%lld\t%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\t%d\t",
                   R10,  R11,  R12,  R13,  R14,  R15, CF, OF, SF, ZF);
 
     fprintf(fp, "%lld", (RSPinit - RSP));
 
-    for (int i = 0; i < RSPinit - RSP; i++)
+    for (int i = 1; i <= RSPinit - RSP; i++)
     {
-        fprintf(fp, "\t%d", ReadMem(RSPinit-i, 1));
+        fprintf(fp, "%x", ReadMem(RSPinit-i, 1));
     }
 
     fprintf(fp, "\t");
@@ -147,7 +148,6 @@ void SaveState()
 
     fclose(fp);
 }
-
 
 void InstructionFetch()
 {
@@ -260,6 +260,7 @@ void Init()
             }
         }
     }
+    WriteMem(RSP, 1, 0xff); //Savestate miatt;
 }
 void OperandFetch()
 {
@@ -386,6 +387,10 @@ void WriteBack()
         return;
     if (!strcmp(Mnemonic, "mul"))
         return;
+        if (!strcmp(Mnemonic, "push"))
+        return;
+        if (!strcmp(Mnemonic, "pop"))
+        return;
 
     ALUout = ALUout & OpMaskDest;
     long long int tmp, mask;
@@ -401,6 +406,7 @@ void WriteBack()
 
 void add()
 {
+
     CF = 0;
     OF = 0;
     switch (OpMaskSource)
@@ -474,8 +480,8 @@ void call()
         fprintf(stderr, "Error! RSP >= RSPinit(0x%llx < 0x%llx)\n", RSP, RSPinit); // ret javítása, oda kell tenni ezt az ellenőrzést, ugyanugy stacpointerbol adod hibak
         Run = 0;
     }
-    WriteMem(RSP-8, 8, RIP); // a stack pointer oda mutat ahol már van elem, nem az első üres helyre, ret, pop, push, call javítás!!
     RSP -= 8;
+    WriteMem(RSP, 8, RIP); // a stack pointer oda mutat ahol már van elem, nem az első üres helyre, ret, pop, push, call javítás!!
     RIP = ALUin1;
     return;
 }
@@ -645,12 +651,14 @@ void inc()
 void lea()
 {
     ALUout = ALUin2; // preliminary calculations performed by Operandfetch()
+
     return;
 }
 void leave()
 {
     RSP = RBP;
-    RBP = ReadMem(RSP + 8, 8);
+    RBP = ReadMem(RSP, 8);
+    RSP+=8;
     return;
 }
 void loop()
@@ -670,14 +678,20 @@ void movabs()
 void mov()
 {
     long long int tmp, mask;
-    if (FetchRegister(Operand1, &tmp, &mask))
+
+    //printf("%s\n", Operand1);
+    int tmp2 = FetchRegister(Operand1, &tmp, &mask);
+    if (!tmp2)
     {
+        
+        ResolveAddress(&ALUin1, Operand1);
+        //printf("%llx addr %llx value %s", ALUin1, ALUin2, Operand1);
+        //puts("mov to memory");
+        WriteMem(ALUin1, WriteBackSize, ALUin2);
+        return;
+    }
         ALUout = ALUin2;
-    }
-    else
-    {
-        WriteMem(ALUin1+1, WriteBackSize, ALUin2);
-    }
+    
     return;
 }
 void movsx()
@@ -894,16 +908,8 @@ void sub()
             OF = 1;
     }
     }
-    while (Sbit * 2 - 1 != OpMaskSource)
-        Sbit <<= 1;
-    if ((ALUout & Sbit) != 0)
-        SF = 1;
-    else
-        SF = 0;
-    if (ALUout == 0)
-        ZF = 1;
-    else
-        ZF = 0;
+    SF = CheckSF(ALUout, OpMaskDest);
+    ZF = CheckZF(ALUout, OpMaskDest);
 }
 void sbb()
 {
@@ -948,7 +954,7 @@ void push()
         break;
     }
     RSP -= size;
-    WriteMem(RSP+1, size, ALUin1);
+    WriteMem(RSP, size, ALUin1);
     //printf("%llX címre pusholt elem %d bájt hosszan: %llX\n", RSP, size, ALUin1);
 
     
@@ -975,7 +981,7 @@ void pop()
     default:
         break;
     }
-    ALUout = ReadMem(RSP+1, size);
+    ALUout = ReadMem(RSP, size);
     // printf("%llX címről popolt elem %d bájt hosszan: %llX\n", RSP+size, size, ALUout);
     RSP += size;
     // printf("RSP: %llX\n", RSP);
@@ -1771,9 +1777,10 @@ void Execute()
         sub();
         if (!strcmp(Operand1, "rsp"))
         {
-            for(int i = 0; i<=ALUin2; i++)
+            RSP -= ALUin2;
+            for(int i = 0; i<ALUin2; i++)
             {
-                WriteMem(RSP-i, 1, 0);
+                WriteMem(RSP+i, 1, 0);
             }
         }
         return;
@@ -2039,7 +2046,12 @@ void Execute()
 void Fini()
 {
     SaveState();
-    puts("###--Fini--###");
+    InstLength = 0;
+    strcpy(MachineCode, "-\0");
+    strcpy(Assembly, "END");
+    SaveState();
+    free(MemData);
+    free(MemInst);
 }
 
 // #####################################################################//
