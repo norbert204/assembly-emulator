@@ -211,8 +211,6 @@ class MainWindowViewModel(QObject):
         if self.instructions:
             self.instructions[0].assembly = "BEGIN"
             self.instructions[0].machine_code = "-"
-            self.instructions[-1].assembly = "END"
-            self.instructions[-1].machine_code = "-"
 
         self.signal_instructions.emit(self.instructions)
         self.signal_current_instruction.emit(self.current_instruction())
